@@ -1,8 +1,3 @@
-/**
- * Optimized Smootify Search Drawer
- * Performance improvements: debouncing, event delegation, memory management, cached queries
- */
-
 (function() {
     'use strict';
     
