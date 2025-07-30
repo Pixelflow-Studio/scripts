@@ -143,6 +143,168 @@ class FilterComponent {
 
     // Set initial states efficiently
     accordionItems.forEach(item => this.setInitialAccordionState(item));
+    
+    // Watch for filter changes to update accordion state
+    this.setupFilterChangeObserver();
+  }
+
+  /**
+   * Watch for filter changes and update accordion state accordingly
+   */
+  setupFilterChangeObserver() {
+    // Watch for checkbox changes
+    document.addEventListener('change', (e) => {
+      if (e.target.type === 'checkbox') {
+        this.updateAccordionStateAfterFilterChange(e.target);
+      }
+    });
+
+    // Watch for filter clearing actions
+    document.addEventListener('click', (e) => {
+      const target = e.target;
+      const isClearAction = target.closest('[data-clear-filters]') || 
+                           target.closest('.clear-filters') ||
+                           target.closest('.filter-clear') ||
+                           target.textContent?.toLowerCase().includes('clear all') ||
+                           target.textContent?.toLowerCase().includes('reset filters');
+      
+      if (isClearAction) {
+        // Use setTimeout to ensure the clear action completes first
+        setTimeout(() => this.updateAllAccordionStates(), 100);
+      }
+    });
+
+    // Watch for programmatic filter clearing via attribute changes
+    const observer = new MutationObserver((mutations) => {
+      let shouldUpdate = false;
+      
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes') {
+          // Check for common filter reset attributes
+          const target = mutation.target;
+          if (target.hasAttribute('data-filters-cleared') || 
+              target.hasAttribute('data-reset-filters') ||
+              target.classList.contains('filters-reset')) {
+            shouldUpdate = true;
+          }
+        } else if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              // Check if this looks like a filter clear action
+              if (node.classList && (
+                node.classList.contains('filter-clear') ||
+                node.classList.contains('clear-filters') ||
+                node.textContent?.toLowerCase().includes('clear')
+              )) {
+                shouldUpdate = true;
+              }
+            }
+          });
+        }
+      });
+      
+      if (shouldUpdate) {
+        setTimeout(() => this.updateAllAccordionStates(), 100);
+      }
+    });
+
+    // Observe the document body for filter-related changes
+    observer.observe(document.body, { 
+      childList: true, 
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-filters-cleared', 'data-reset-filters']
+    });
+
+    this.observers.add(observer);
+  }
+
+  /**
+   * Update accordion state when a filter checkbox changes
+   */
+  updateAccordionStateAfterFilterChange(checkbox) {
+    const accordionItem = checkbox.closest('.filter_item');
+    if (!accordionItem) return;
+
+    const pane = accordionItem.querySelector('[filter-element="accordion-pane"]');
+    const unselectedFilters = pane?.querySelectorAll('.filter_checkbox:not(:has(.w--redirected-checked))');
+    
+    if (!unselectedFilters || unselectedFilters.length === 0) return;
+
+    // If accordion is closed but filters are now visible, update the state
+    if (!accordionItem.classList.contains('is-open')) {
+      const hasVisibleFilters = Array.from(unselectedFilters).some(filter => 
+        filter.style.display !== 'none' && 
+        filter.offsetHeight > 0
+      );
+      
+      if (hasVisibleFilters) {
+        // Update the visual state to match the actual state
+        this.syncAccordionVisualState(accordionItem, true);
+      }
+    }
+  }
+
+  /**
+   * Update all accordion states (used when filters are cleared)
+   */
+  updateAllAccordionStates() {
+    const accordionItems = this.getCachedElements('.filter_item:has([filter-element="accordion-trigger"])');
+    
+    accordionItems.forEach(item => {
+      const pane = item.querySelector('[filter-element="accordion-pane"]');
+      const unselectedFilters = pane?.querySelectorAll('.filter_checkbox:not(:has(.w--redirected-checked))');
+      
+      if (unselectedFilters && unselectedFilters.length > 0) {
+        const hasVisibleFilters = Array.from(unselectedFilters).some(filter => 
+          filter.style.display !== 'none' && 
+          filter.offsetHeight > 0
+        );
+        
+        if (hasVisibleFilters && !item.classList.contains('is-open')) {
+          this.syncAccordionVisualState(item, true);
+        }
+      }
+    });
+  }
+
+  /**
+   * Sync the visual state of accordion with its actual state
+   */
+  syncAccordionVisualState(item, shouldBeOpen) {
+    const icon = item.querySelector('[filter-element="accordion-chevron"]');
+    const pane = item.querySelector('[filter-element="accordion-pane"]');
+    const unselectedFilters = pane?.querySelectorAll('.filter_checkbox:not(:has(.w--redirected-checked))');
+    
+    if (!icon || !pane || !unselectedFilters) return;
+
+    if (shouldBeOpen) {
+      // Show filters and update icon
+      gsap.set(unselectedFilters, { 
+        height: 38, 
+        autoAlpha: 1, 
+        marginTop: "auto", 
+        marginBottom: "auto", 
+        paddingTop: "auto", 
+        paddingBottom: "auto",
+        y: 0 
+      });
+      gsap.set(icon, { rotation: -180 });
+      item.classList.add('is-open');
+    } else {
+      // Hide filters and update icon
+      gsap.set(unselectedFilters, { 
+        height: 0, 
+        autoAlpha: 0, 
+        marginTop: 0, 
+        marginBottom: 0, 
+        paddingTop: 0, 
+        paddingBottom: 0, 
+        y: 10 
+      });
+      gsap.set(icon, { rotation: 0 });
+      item.classList.remove('is-open');
+    }
   }
 
   /**
@@ -392,6 +554,14 @@ class FilterComponent {
     window.addEventListener('resize', this.handleResize, { passive: true });
     
     this.isInitialized = true;
+  }
+
+  /**
+   * Public method to manually update accordion states
+   * Call this after programmatically clearing filters
+   */
+  updateAccordionStates() {
+    this.updateAllAccordionStates();
   }
 
   /**
