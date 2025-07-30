@@ -289,7 +289,7 @@
 
         // Set initial states efficiently
         gsap.set(elements.inputCloseButton, { opacity: 0, visibility: 'hidden' });
-        gsap.set(elements.searchPanel, { yPercent: -100 });
+        gsap.set(elements.searchPanel, { yPercent: 100 });
 
         matchMedia = gsap.matchMedia();
 
