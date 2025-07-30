@@ -9,190 +9,284 @@
 <body>
     <div class="container">
         <header class="header">
-            <h1>Finsweet Slider Generator</h1>
-            <p>Generate code for Webflow projects</p>
+            <div class="header-content">
+                <h1>F'in sweet Slider Generator</h1>
+                <p>Create sliders in a Finsweet Attributes style UI</p>
+            </div>
         </header>
 
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="list-slider">List Slider</button>
-            <button class="tab-btn" data-tab="range-slider">Range Slider</button>
-            <button class="tab-btn" data-tab="custom-dots">Custom Dots</button>
+        <div class="how-to-use">
+            <h3>How to use:</h3>
+            <ul>
+                <li>Select your slider type from the tabs below</li>
+                <li>Configure your settings using the visual controls</li>
+                <li>Copy the generated HTML, CSS, and Script code</li>
+                <li>Paste into your Webflow project</li>
+                <li>Still have questions? Check <a href="https://finsweet.com/attributes/" target="_blank">Finsweet Attributes docs</a></li>
+            </ul>
         </div>
 
-        <div class="tab-content">
-            <!-- List Slider Tab -->
-            <div id="list-slider" class="tab-panel active">
-                <form class="config-form">
-                    <div class="form-group">
-                        <label for="slider-name">Slider Name:</label>
-                        <input type="text" id="slider-name" placeholder="my-slider" value="my-slider">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="data-source">Data Source:</label>
-                        <select id="data-source">
-                            <option value="cms">CMS Collection</option>
-                            <option value="static">Static Content</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group cms-only">
-                        <label for="collection-name">Collection Name:</label>
-                        <input type="text" id="collection-name" placeholder="blog-posts">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="items-per-slide">Items per Slide:</label>
-                        <input type="number" id="items-per-slide" min="1" max="10" value="1">
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="auto-play"> Auto Play
-                        </label>
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="infinite-scroll"> Infinite Scroll
-                        </label>
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="reset-interactions"> Reset Interactions
-                        </label>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="instance-name">Instance Name (optional):</label>
-                        <input type="text" id="instance-name" placeholder="unique-identifier">
-                    </div>
-                </form>
-            </div>
-
-            <!-- Range Slider Tab -->
-            <div id="range-slider" class="tab-panel">
-                <form class="config-form">
-                    <div class="form-group">
-                        <label for="range-name">Range Slider Name:</label>
-                        <input type="text" id="range-name" placeholder="price-range" value="price-range">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="min-value">Min Value:</label>
-                        <input type="number" id="min-value" value="0">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="max-value">Max Value:</label>
-                        <input type="number" id="max-value" value="100">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="step-value">Step Value:</label>
-                        <input type="number" id="step-value" value="1" min="0.1" step="0.1">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="start-value">Start Value:</label>
-                        <input type="number" id="start-value" value="50">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="handles">Number of Handles:</label>
-                        <select id="handles">
-                            <option value="1">Single Handle</option>
-                            <option value="2">Two Handles</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="format-display"> Format Display Numbers
-                        </label>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="update-mode">Update Mode:</label>
-                        <select id="update-mode">
-                            <option value="move">Update on Move</option>
-                            <option value="release">Update on Release</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Custom Dots Tab -->
-            <div id="custom-dots" class="tab-panel">
-                <form class="config-form">
-                    <div class="form-group">
-                        <label for="dots-slider-name">Target Slider Name:</label>
-                        <input type="text" id="dots-slider-name" placeholder="main-slider" value="main-slider">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="dot-content">Dot Content Type:</label>
-                        <select id="dot-content">
-                            <option value="text">Text</option>
-                            <option value="image">Image</option>
-                            <option value="custom">Custom HTML</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="active-class">Active Class Name:</label>
-                        <input type="text" id="active-class" placeholder="is-active" value="is-active">
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="remove-original"> Remove Original Content
-                        </label>
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="clear-nav"> Clear Existing Nav Content
-                        </label>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div class="preview-section">
-            <h3>Live Preview</h3>
-            <div class="preview-container">
-                <div id="preview-area" class="preview-area">
-                    <!-- Preview will be generated here -->
+        <div class="main-content">
+            <div class="slider-type-selector">
+                <div class="type-card active" data-type="list-slider">
+                    <div class="card-icon">📋</div>
+                    <h3>List Slider</h3>
+                    <p>CMS Collection sliders</p>
                 </div>
-            </div>
-        </div>
-
-        <div class="output-section">
-            <div class="output-tabs">
-                <button class="output-tab active" data-output="html">HTML</button>
-                <button class="output-tab" data-output="script">Script</button>
-                <button class="output-tab" data-output="css">CSS</button>
-            </div>
-
-            <div class="code-output">
-                <div id="html-output" class="output-panel active">
-                    <pre><code id="html-code"></code></pre>
+                <div class="type-card" data-type="range-slider">
+                    <div class="card-icon">🎚️</div>
+                    <h3>Range Slider</h3>
+                    <p>Form range controls</p>
                 </div>
-                <div id="script-output" class="output-panel">
-                    <pre><code id="script-code"></code></pre>
-                </div>
-                <div id="css-output" class="output-panel">
-                    <pre><code id="css-code"></code></pre>
+                <div class="type-card" data-type="custom-dots">
+                    <div class="card-icon">⭕</div>
+                    <h3>Custom Dots</h3>
+                    <p>Custom navigation</p>
                 </div>
             </div>
 
-            <div class="actions">
-                <button id="copy-html" class="btn btn-primary">Copy HTML</button>
-                <button id="copy-script" class="btn btn-secondary">Copy Script</button>
-                <button id="copy-css" class="btn btn-secondary">Copy CSS</button>
-                <button id="copy-all" class="btn btn-accent">Copy All</button>
+            <div class="flash-card-container">
+                <!-- List Slider Flash Card -->
+                <div id="list-slider-card" class="flash-card active">
+                    <div class="flash-card-header">
+                        <h2>List Slider • Flash Card</h2>
+                        <div class="copy-script-btn" data-copy="script">Copy Script</div>
+                    </div>
+                    
+                    <div class="flash-card-content">
+                        <div class="settings-section">
+                            <h3>Settings:</h3>
+                            
+                            <div class="setting-group">
+                                <label>Slider name:</label>
+                                <input type="text" id="slider-name" value="my-slider" class="setting-input">
+                            </div>
+
+                            <div class="setting-group">
+                                <label>Data source:</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="data-source" value="cms" checked>
+                                        <span>CMS Collection</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="data-source" value="static">
+                                        <span>Static Content</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="setting-group cms-only">
+                                <label>Collection name:</label>
+                                <input type="text" id="collection-name" placeholder="blog-posts" class="setting-input">
+                            </div>
+
+                            <div class="setting-group">
+                                <label>Items per slide:</label>
+                                <input type="number" id="items-per-slide" value="1" min="1" max="10" class="setting-input">
+                            </div>
+
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="reset-interactions">
+                                    <span>Reset interactions</span>
+                                </label>
+                            </div>
+
+                            <div class="setting-group">
+                                <label>Instance name <span class="optional">(optional)</span>:</label>
+                                <input type="text" id="instance-name" placeholder="unique-identifier" class="setting-input">
+                            </div>
+                        </div>
+
+                        <div class="preview-section">
+                            <h3>Live Preview:</h3>
+                            <div id="list-preview" class="preview-area">
+                                <!-- Preview will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Range Slider Flash Card -->
+                <div id="range-slider-card" class="flash-card">
+                    <div class="flash-card-header">
+                        <h2>Range Slider • Flash Card</h2>
+                        <div class="copy-script-btn" data-copy="script">Copy Script</div>
+                    </div>
+                    
+                    <div class="flash-card-content">
+                        <div class="settings-section">
+                            <h3>Settings:</h3>
+                            
+                            <div class="setting-group">
+                                <label>Range name:</label>
+                                <input type="text" id="range-name" value="price-range" class="setting-input">
+                            </div>
+
+                            <div class="setting-row">
+                                <div class="setting-group">
+                                    <label>Min value:</label>
+                                    <input type="number" id="min-value" value="0" class="setting-input">
+                                </div>
+                                <div class="setting-group">
+                                    <label>Max value:</label>
+                                    <input type="number" id="max-value" value="100" class="setting-input">
+                                </div>
+                            </div>
+
+                            <div class="setting-row">
+                                <div class="setting-group">
+                                    <label>Step value:</label>
+                                    <input type="number" id="step-value" value="1" step="0.1" class="setting-input">
+                                </div>
+                                <div class="setting-group">
+                                    <label>Start value:</label>
+                                    <input type="number" id="start-value" value="50" class="setting-input">
+                                </div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label>Number of handles:</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="handles" value="1" checked>
+                                        <span>Single Handle</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="handles" value="2">
+                                        <span>Two Handles</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="format-display">
+                                    <span>Format display numbers</span>
+                                </label>
+                            </div>
+
+                            <div class="setting-group">
+                                <label>Update mode:</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="update-mode" value="move" checked>
+                                        <span>Update on Move</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="update-mode" value="release">
+                                        <span>Update on Release</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="preview-section">
+                            <h3>Live Preview:</h3>
+                            <div id="range-preview" class="preview-area">
+                                <!-- Preview will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Dots Flash Card -->
+                <div id="custom-dots-card" class="flash-card">
+                    <div class="flash-card-header">
+                        <h2>Custom Dots • Flash Card</h2>
+                        <div class="copy-script-btn" data-copy="script">Copy Script</div>
+                    </div>
+                    
+                    <div class="flash-card-content">
+                        <div class="settings-section">
+                            <h3>Settings:</h3>
+                            
+                            <div class="setting-group">
+                                <label>Target slider name:</label>
+                                <input type="text" id="dots-slider-name" value="main-slider" class="setting-input">
+                            </div>
+
+                            <div class="setting-group">
+                                <label>Dot content type:</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="dot-content" value="text" checked>
+                                        <span>Text</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="dot-content" value="image">
+                                        <span>Image</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="dot-content" value="custom">
+                                        <span>Custom HTML</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label>Active class name:</label>
+                                <input type="text" id="active-class" value="is-active" class="setting-input">
+                            </div>
+
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="remove-original">
+                                    <span>Remove original content</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="clear-nav">
+                                    <span>Clear existing nav content</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="preview-section">
+                            <h3>Live Preview:</h3>
+                            <div id="dots-preview" class="preview-area">
+                                <!-- Preview will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="output-section">
+                <div class="output-tabs">
+                    <button class="output-tab active" data-output="html">HTML</button>
+                    <button class="output-tab" data-output="script">Script</button>
+                    <button class="output-tab" data-output="css">CSS</button>
+                </div>
+
+                <div class="code-output">
+                    <div id="html-output" class="output-panel active">
+                        <div class="code-header">
+                            <span>HTML Code</span>
+                            <button class="copy-btn" data-copy="html">Copy</button>
+                        </div>
+                        <pre><code id="html-code"></code></pre>
+                    </div>
+                    <div id="script-output" class="output-panel">
+                        <div class="code-header">
+                            <span>Before &lt;/body&gt; tag</span>
+                            <button class="copy-btn" data-copy="script">Copy</button>
+                        </div>
+                        <pre><code id="script-code"></code></pre>
+                    </div>
+                    <div id="css-output" class="output-panel">
+                        <div class="code-header">
+                            <span>CSS Styles</span>
+                            <button class="copy-btn" data-copy="css">Copy</button>
+                        </div>
+                        <pre><code id="css-code"></code></pre>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button id="copy-all" class="btn btn-primary">Copy All Code</button>
+                    <button id="open-docs" class="btn btn-secondary">Finsweet Docs</button>
+                </div>
             </div>
         </div>
     </div>
