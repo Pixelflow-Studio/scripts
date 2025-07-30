@@ -20,6 +20,9 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
+    // Initialize nav links with starting animation state
+    gsap.set(primaryNavLinks, { opacity: 0, y: 20 });
+
     // --- 2. PERFORMANCE OPTIMIZATIONS ---
     // Cache scrollbar width calculation
     let cachedScrollbarWidth = null;
@@ -101,16 +104,15 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const closeMenu = () => {
-        if (isAnimating) return;
+        // Allow closing even during animation - just kill current timeline
+        killCurrentTimeline();
         isAnimating = true;
 
-        killCurrentTimeline();
-        
         currentTimeline = gsap.timeline({
             onComplete: () => {
                 resetSubNavs();
                 gsap.set(sidebarComponent, { pointerEvents: 'none' });
-                gsap.set(primaryNavLinks, { opacity: 0, y: 0 }); 
+                gsap.set(primaryNavLinks, { opacity: 0, y: 20 }); 
                 const bodyStyle = document.body.style;
                 bodyStyle.paddingRight = '';
                 bodyStyle.overflow = '';
