@@ -20,6 +20,7 @@
     let currentTimeline = null;
     let matchMedia = null;
     let isInitialized = false;
+    let typingInterval = null;
 
     // Utility functions
     function debounce(func, wait) {
@@ -42,14 +43,16 @@
             searchInputs: document.querySelectorAll('[data-search="input"]'),
             searchPanel: document.querySelector('[data-search="panel"]'),
             inputCloseButton: document.querySelector('[data-search="close"]'),
-            body: document.body
+            body: document.body,
+            searchInput: document.querySelector('#search'),
+            smootifySearchInput: document.querySelector('#smootifySearch')
         };
 
         return cachedElements;
     }
 
     function validateElements(elements) {
-        const { searchWrapper, searchInputs, searchPanel, inputCloseButton } = elements;
+        const { searchWrapper, searchInputs, searchPanel, inputCloseButton, searchInput, smootifySearchInput } = elements;
         
         if (!searchWrapper || !searchInputs.length || !searchPanel || !inputCloseButton) {
             console.error("Required search elements are missing:", {
@@ -60,6 +63,15 @@
             });
             return false;
         }
+        
+        if (!searchInput || !smootifySearchInput) {
+            console.error("Search input elements are missing:", {
+                searchInput: !!searchInput,
+                smootifySearchInput: !!smootifySearchInput
+            });
+            return false;
+        }
+        
         return true;
     }
 
@@ -69,6 +81,68 @@
             getScrollbarWidth.cached = window.innerWidth - document.documentElement.clientWidth;
         }
         return getScrollbarWidth.cached;
+    }
+
+    function simulateTyping(targetInput, text, speed = 50) {
+        // Clear any existing typing simulation
+        if (typingInterval) {
+            clearInterval(typingInterval);
+        }
+        
+        // Clear the target input first
+        targetInput.value = '';
+        targetInput.focus();
+        
+        let currentIndex = 0;
+        
+        typingInterval = setInterval(() => {
+            if (currentIndex < text.length) {
+                targetInput.value += text[currentIndex];
+                // Trigger input event to simulate real typing
+                targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                currentIndex++;
+            } else {
+                clearInterval(typingInterval);
+                typingInterval = null;
+            }
+        }, speed);
+    }
+
+    function handleSearchInputChange() {
+        const { searchInput, smootifySearchInput } = cachedElements;
+        const value = searchInput.value;
+        
+        // Mirror the value to the smootify search input
+        if (value !== smootifySearchInput.value) {
+            simulateTyping(smootifySearchInput, value);
+        }
+        
+        // Reset search when input is cleared
+        if (value === '') {
+            resetSearch();
+        }
+    }
+
+    function resetSearch() {
+        // Clear any active typing simulation
+        if (typingInterval) {
+            clearInterval(typingInterval);
+            typingInterval = null;
+        }
+        
+        // Clear the smootify search input
+        const { smootifySearchInput } = cachedElements;
+        if (smootifySearchInput) {
+            smootifySearchInput.value = '';
+            // Trigger input event to notify any search listeners
+            smootifySearchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        
+        // Add any additional search reset logic here
+        // For example, if you have search results that need to be cleared:
+        // clearSearchResults();
+        
+        console.log('Search has been reset');
     }
 
     function createTimeline(isMobile = false) {
@@ -155,7 +229,7 @@
     }, DEBOUNCE_DELAY);
 
     function setupEventListeners() {
-        const { searchInputs, inputCloseButton } = cachedElements;
+        const { searchInputs, inputCloseButton, searchInput } = cachedElements;
         
         // Use event delegation for inputs if possible, otherwise individual listeners
         searchInputs.forEach(input => {
@@ -164,6 +238,9 @@
         
         inputCloseButton.addEventListener("click", handleCloseClick, { passive: true });
         document.addEventListener("click", handleOutsideClick, { passive: true });
+        
+        // Add input change listener for search input mirroring
+        searchInput.addEventListener("input", handleSearchInputChange, { passive: true });
     }
 
     function cleanup() {
@@ -177,8 +254,14 @@
             currentTimeline = null;
         }
 
+        // Clear any active typing simulation
+        if (typingInterval) {
+            clearInterval(typingInterval);
+            typingInterval = null;
+        }
+
         // Remove event listeners
-        const { searchInputs, inputCloseButton } = cachedElements || {};
+        const { searchInputs, inputCloseButton, searchInput } = cachedElements || {};
         if (searchInputs) {
             searchInputs.forEach(input => {
                 input.removeEventListener("click", handleInputClick);
@@ -187,6 +270,10 @@
         
         if (inputCloseButton) {
             inputCloseButton.removeEventListener("click", handleCloseClick);
+        }
+        
+        if (searchInput) {
+            searchInput.removeEventListener("input", handleSearchInputChange);
         }
         
         document.removeEventListener("click", handleOutsideClick);
@@ -201,9 +288,7 @@
         if (!validateElements(elements)) return;
 
         // Set initial states efficiently
-        gsap.batch([elements.inputCloseButton], {
-            onEnter: (batch) => gsap.set(batch, { opacity: 0, visibility: 'hidden' })
-        });
+        gsap.set(elements.inputCloseButton, { opacity: 0, visibility: 'hidden' });
         gsap.set(elements.searchPanel, { yPercent: -100 });
 
         matchMedia = gsap.matchMedia();
