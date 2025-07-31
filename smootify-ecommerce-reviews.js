@@ -493,3 +493,27 @@ window.testStarRendering = function() {
         });
     });
 };
+
+// Also expose the main functions for debugging
+window.populateProductCardRatings = populateProductCardRatings;
+window.initializeReviewSystem = initializeReviewSystem;
+
+// Create a simple test function
+window.simpleTest = function() {
+    console.log('✅ Script is loaded and working!');
+    console.log('reviewDataStore:', reviewDataStore);
+    console.log('Available functions:', {
+        populateProductCardRatings: typeof populateProductCardRatings,
+        checkStarVisibility: typeof window.checkStarVisibility,
+        fixStarVisibility: typeof window.fixStarVisibility,
+        testStarRendering: typeof window.testStarRendering
+    });
+    return 'SUCCESS';
+};
+
+console.log('✅ Review system script loaded with debugging functions!');
+console.log('Available debugging functions:');
+console.log('- checkStarVisibility()');
+console.log('- fixStarVisibility()');
+console.log('- testStarRendering()');
+console.log('- simpleTest()');
