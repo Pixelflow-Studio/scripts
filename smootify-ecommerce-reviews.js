@@ -346,18 +346,19 @@ function updateRatingDisplay(ratingComponent, averageRating, totalReviews) {
 function updateStarRating(container, rating) {
   console.log('updateStarRating called with rating:', rating, 'container:', container);
   
-  // Handle both svg path and direct path elements
-  let starPaths = container.querySelectorAll('svg path');
-  console.log('Found svg paths:', starPaths.length);
+  // Check if stars exist, if not create them
+  let starPaths = container.querySelectorAll('path');
+  console.log('Found existing star paths:', starPaths.length);
   
-  // If no svg paths found, look for direct path elements
   if (starPaths.length === 0) {
+    console.log('No stars found, creating stars...');
+    createStars(container);
     starPaths = container.querySelectorAll('path');
-    console.log('Found direct paths:', starPaths.length);
+    console.log('Created star paths:', starPaths.length);
   }
   
   if (starPaths.length === 0) {
-    console.warn('No star paths found in container:', container);
+    console.warn('Still no star paths found in container:', container);
     console.log('Container HTML:', container.innerHTML);
     return;
   }
@@ -385,6 +386,22 @@ function updateStarRating(container, rating) {
   container.style.display = 'none';
   container.offsetHeight; // Trigger reflow
   container.style.display = '';
+}
+
+// Function to create stars if they don't exist
+function createStars(container) {
+  const starSVG = `
+    <svg width="100" height="20" viewBox="0 0 100 20" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 0l3.09 9.51H22l-8.45 6.14 3.09 9.51L10 19.02l-6.64 6.14 3.09-9.51L-2 9.51h8.91z" fill="transparent" stroke="black" stroke-width="0.5"/>
+      <path d="M30 0l3.09 9.51H42l-8.45 6.14 3.09 9.51L30 19.02l-6.64 6.14 3.09-9.51L18 9.51h8.91z" fill="transparent" stroke="black" stroke-width="0.5"/>
+      <path d="M50 0l3.09 9.51H62l-8.45 6.14 3.09 9.51L50 19.02l-6.64 6.14 3.09-9.51L38 9.51h8.91z" fill="transparent" stroke="black" stroke-width="0.5"/>
+      <path d="M70 0l3.09 9.51H82l-8.45 6.14 3.09 9.51L70 19.02l-6.64 6.14 3.09-9.51L58 9.51h8.91z" fill="transparent" stroke="black" stroke-width="0.5"/>
+      <path d="M90 0l3.09 9.51H102l-8.45 6.14 3.09 9.51L90 19.02l-6.64 6.14 3.09-9.51L78 9.51h8.91z" fill="transparent" stroke="black" stroke-width="0.5"/>
+    </svg>
+  `;
+  
+  container.innerHTML = starSVG;
+  console.log('Stars created in container');
 }
 
 // =================================================================================
