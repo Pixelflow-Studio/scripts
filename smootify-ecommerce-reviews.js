@@ -41,6 +41,30 @@ const CONFIG = {
     EMPTY_STATE: '.review-empty',
     REVIEWS_CONTAINER: '#reviews-container',
     TEMPLATE: '#review-card-template'
+  },
+  STYLING: {
+    STARS: {
+      FILLED_COLOR: 'gold',           // Color for filled stars
+      EMPTY_COLOR: 'none',            // Color for empty stars (or 'transparent')
+      STROKE_COLOR: 'black',          // Border color for stars
+      STROKE_WIDTH: '1px',            // Border width for stars
+      SIZE: '16px',                   // Size of stars
+      SPACING: '2px'                  // Space between stars
+    },
+    ANIMATIONS: {
+      ENABLED: true,                  // Enable/disable animations
+      DURATION: 0.6,                  // Animation duration in seconds
+      STAGGER: 0.1,                   // Delay between each review card
+      EASE: "power3.out"              // Animation easing
+    },
+    COLORS: {
+      PRIMARY: '#007bff',             // Primary color for UI elements
+      SUCCESS: '#28a745',             // Success color
+      WARNING: '#ffc107',             // Warning color
+      DANGER: '#dc3545',              // Error color
+      TEXT_PRIMARY: '#333333',        // Primary text color
+      TEXT_SECONDARY: '#666666'       // Secondary text color
+    }
   }
 };
 
@@ -199,6 +223,57 @@ function cleanupObservers() {
 window.addEventListener('beforeunload', cleanupObservers);
 
 // =================================================================================
+// Styling Helper Functions
+// =================================================================================
+
+/**
+ * Applies custom CSS styles based on configuration
+ */
+function applyCustomStyles() {
+  const style = document.createElement('style');
+  style.textContent = `
+    /* Custom star styling */
+    [review="productCard_starRating"] svg,
+    [review="Product_starRating"] svg,
+    [reviewcard="starRating"] svg {
+      width: ${CONFIG.STYLING.STARS.SIZE};
+      height: ${CONFIG.STYLING.STARS.SIZE};
+    }
+    
+    [review="productCard_starRating"] svg + svg,
+    [review="Product_starRating"] svg + svg,
+    [reviewcard="starRating"] svg + svg {
+      margin-left: ${CONFIG.STYLING.STARS.SPACING};
+    }
+    
+    /* Custom colors for UI elements */
+    .review_ui-header {
+      color: ${CONFIG.STYLING.COLORS.TEXT_PRIMARY};
+    }
+    
+    .review_card {
+      color: ${CONFIG.STYLING.COLORS.TEXT_PRIMARY};
+    }
+    
+    .review_ui-filter a {
+      color: ${CONFIG.STYLING.COLORS.PRIMARY};
+    }
+    
+    .review_ui-filter a:hover {
+      color: ${CONFIG.STYLING.COLORS.SUCCESS};
+    }
+    
+    .filter-tick {
+      color: ${CONFIG.STYLING.COLORS.SUCCESS};
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// Apply custom styles when the system initializes
+document.addEventListener('smootify:loaded', applyCustomStyles);
+
+// =================================================================================
 // Logic for Product Card Ratings
 // =================================================================================
 
@@ -222,13 +297,14 @@ function populateProductCardRatings() {
 
       if (totalElement) totalElement.textContent = totalReviews;
       
-      if (starContainer) {
-          const starSvgPaths = starContainer.querySelectorAll('svg path');
-          starSvgPaths.forEach((path, index) => {
-              path.setAttribute('fill', index < averageRating ? 'gold' : 'none');
-              path.setAttribute('stroke', 'black');
-          });
-      }
+             if (starContainer) {
+           const starSvgPaths = starContainer.querySelectorAll('svg path');
+           starSvgPaths.forEach((path, index) => {
+               path.setAttribute('fill', index < averageRating ? CONFIG.STYLING.STARS.FILLED_COLOR : CONFIG.STYLING.STARS.EMPTY_COLOR);
+               path.setAttribute('stroke', CONFIG.STYLING.STARS.STROKE_COLOR);
+               path.setAttribute('stroke-width', CONFIG.STYLING.STARS.STROKE_WIDTH);
+           });
+       }
       
       ratingComponent.style.display = 'flex';
   });
@@ -360,8 +436,9 @@ function updateAggregateRatingDisplay(reviews) {
   totalReviewsElement.textContent = totalReviews;
   const starSvgPaths = starContainer.querySelectorAll('svg path');
   starSvgPaths.forEach((path, index) => {
-      path.setAttribute('fill', index < averageRating ? 'gold' : 'none');
-      path.setAttribute('stroke', 'black');
+      path.setAttribute('fill', index < averageRating ? CONFIG.STYLING.STARS.FILLED_COLOR : CONFIG.STYLING.STARS.EMPTY_COLOR);
+      path.setAttribute('stroke', CONFIG.STYLING.STARS.STROKE_COLOR);
+      path.setAttribute('stroke-width', CONFIG.STYLING.STARS.STROKE_WIDTH);
   });
 }
 
@@ -379,8 +456,9 @@ function renderAverageRatingHeader(reviews) {
   const roundedAverage = Math.round(preciseAverage);
   const starSvgPaths = starRatingEl.querySelectorAll('svg path');
   starSvgPaths.forEach((path, index) => {
-      path.setAttribute('fill', index < roundedAverage ? 'gold' : 'none');
-      path.setAttribute('stroke', 'black');
+      path.setAttribute('fill', index < roundedAverage ? CONFIG.STYLING.STARS.FILLED_COLOR : CONFIG.STYLING.STARS.EMPTY_COLOR);
+      path.setAttribute('stroke', CONFIG.STYLING.STARS.STROKE_COLOR);
+      path.setAttribute('stroke-width', CONFIG.STYLING.STARS.STROKE_WIDTH);
   });
   reviewUiHeaderEl.style.opacity = '1';
 }
@@ -422,18 +500,31 @@ function renderReviews(reviews) {
           starsContainerEl.setAttribute('role', 'img');
           starsContainerEl.setAttribute('aria-label', `${rating} out of 5 stars`);
           
-          starPaths.forEach((path, index) => {
-              path.setAttribute('fill', index < rating ? 'gold' : 'none');
-              path.setAttribute('stroke', 'black');
-          });
+                     starPaths.forEach((path, index) => {
+               path.setAttribute('fill', index < rating ? CONFIG.STYLING.STARS.FILLED_COLOR : CONFIG.STYLING.STARS.EMPTY_COLOR);
+               path.setAttribute('stroke', CONFIG.STYLING.STARS.STROKE_COLOR);
+               path.setAttribute('stroke-width', CONFIG.STYLING.STARS.STROKE_WIDTH);
+           });
       }
       cardClone.style.visibility = 'hidden';
       container.appendChild(cardClone);
   });
-  gsap.fromTo("#reviews-container .review_card", { y: 30, opacity: 0 }, {
-      duration: 0.6, y: 0, opacity: 1, visibility: 'visible',
-      stagger: 0.1, ease: "power3.out"
-  });
+  if (CONFIG.STYLING.ANIMATIONS.ENABLED) {
+    gsap.fromTo("#reviews-container .review_card", { y: 30, opacity: 0 }, {
+        duration: CONFIG.STYLING.ANIMATIONS.DURATION, 
+        y: 0, 
+        opacity: 1, 
+        visibility: 'visible',
+        stagger: CONFIG.STYLING.ANIMATIONS.STAGGER, 
+        ease: CONFIG.STYLING.ANIMATIONS.EASE
+    });
+  } else {
+    // If animations are disabled, just show the cards immediately
+    document.querySelectorAll("#reviews-container .review_card").forEach(card => {
+      card.style.visibility = 'visible';
+      card.style.opacity = '1';
+    });
+  }
 }
 
 function formatTimeAgo(timestamp) {
