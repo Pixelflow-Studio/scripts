@@ -1,4 +1,5 @@
-// =================================================================================
+
+ // =================================================================================
 // Configuration & Type Definitions
 // =================================================================================
 
@@ -58,8 +59,8 @@ const CONFIG = {
       EASE: "power3.out"              // Animation easing
     },
     COLORS: {
-      PRIMARY: '#007bff',             // Primary color for UI elements
-      SUCCESS: '#28a745',             // Success color
+      PRIMARY: '#080331',             // Primary color for UI elements
+      SUCCESS: '#e6007e',             // Success color
       WARNING: '#ffc107',             // Warning color
       DANGER: '#dc3545',              // Error color
       TEXT_PRIMARY: '#333333',        // Primary text color
