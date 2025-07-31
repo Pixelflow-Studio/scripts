@@ -825,4 +825,21 @@ function testStarRating() {
 // Make test function available globally
 window.testStarRating = testStarRating;
 
+// Force expose all debugging functions to global scope
+window.testScriptLoaded = testScriptLoaded;
+window.testStarRating = testStarRating;
+window.testStarRendering = testStarRendering;
+window.checkStarVisibility = checkStarVisibility;
+
+// Also expose main functions for debugging
+window.updateStarRating = updateStarRating;
+window.updateRatingDisplay = updateRatingDisplay;
+window.loadProductRating = loadProductRating;
+
 console.log('Review system script loaded successfully!');
+console.log('Debugging functions available:', {
+  testScriptLoaded: typeof testScriptLoaded,
+  testStarRating: typeof testStarRating,
+  testStarRendering: typeof testStarRendering,
+  checkStarVisibility: typeof checkStarVisibility
+});
