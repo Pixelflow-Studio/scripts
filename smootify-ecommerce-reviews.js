@@ -866,3 +866,50 @@ setTimeout(() => {
   console.log('window.simpleTest:', typeof window.simpleTest);
   console.log('window.CONFIG:', typeof window.CONFIG);
 }, 100);
+
+// Force expose debugging functions immediately
+(function() {
+  // Create debugging functions that are guaranteed to work
+  window.debugReviewSystem = function() {
+    console.log('=== REVIEW SYSTEM DEBUG ===');
+    console.log('CONFIG:', CONFIG);
+    console.log('reviewDataStore:', reviewDataStore);
+    console.log('updateStarRating available:', typeof updateStarRating);
+    console.log('updateRatingDisplay available:', typeof updateRatingDisplay);
+    return 'DEBUG_COMPLETE';
+  };
+
+  window.testStarRating = function() {
+    console.log('=== TESTING STAR RATING ===');
+    const ratingComponent = document.querySelector('[review="productCard_rating"]');
+    if (ratingComponent) {
+      console.log('Found rating component:', ratingComponent);
+      updateRatingDisplay(ratingComponent, 3, 5);
+      return 'STAR_TEST_COMPLETE';
+    } else {
+      console.log('No rating component found');
+      return 'NO_RATING_COMPONENT';
+    }
+  };
+
+  window.forceLoadRatings = function() {
+    console.log('=== FORCING RATING LOAD ===');
+    const productCards = document.querySelectorAll('smootify-product[data-id], .sm-product[data-id]');
+    console.log('Found product cards:', productCards.length);
+    
+    productCards.forEach((card, index) => {
+      const productId = card.getAttribute('data-id');
+      console.log(`Card ${index + 1}:`, productId);
+      if (productId) {
+        loadProductRating(card, productId);
+      }
+    });
+    return 'RATINGS_FORCED';
+  };
+
+  console.log('✅ Debugging functions exposed:', {
+    debugReviewSystem: typeof window.debugReviewSystem,
+    testStarRating: typeof window.testStarRating,
+    forceLoadRatings: typeof window.forceLoadRatings
+  });
+})();
