@@ -129,7 +129,35 @@ async function fetchWithRetry(url, maxRetries = CONFIG.MAX_RETRIES) {
 // Main Execution Block
 // =================================================================================
 
+// Listen for Smootify loaded event
 document.addEventListener('smootify:loaded', initializeReviewSystem);
+
+// Fallback initialization in case the event doesn't fire
+let initializationAttempts = 0;
+const maxAttempts = 10;
+
+function attemptInitialization() {
+    if (initializationAttempts >= maxAttempts) {
+        console.warn('Smootify review system: Max initialization attempts reached');
+        return;
+    }
+    
+    // Check if Smootify elements exist
+    const smootifyElements = document.querySelectorAll('smootify-product, .sm-product');
+    if (smootifyElements.length > 0) {
+        console.log('Smootify review system: Initializing via fallback');
+        initializeReviewSystem();
+    } else {
+        initializationAttempts++;
+        setTimeout(attemptInitialization, 500);
+    }
+}
+
+// Start fallback initialization after a short delay
+setTimeout(attemptInitialization, 1000);
+
+// Also apply styles immediately in case the event doesn't fire
+applyCustomStyles();
 
 // =================================================================================
 // Initialization and Data Fetching
