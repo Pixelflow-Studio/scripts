@@ -139,14 +139,19 @@ const cardPool = new ReviewCardPool();
 */
 const lazyLoadObserver = new IntersectionObserver(
   (entries) => {
+      console.log('Intersection observer triggered with entries:', entries.length);
       entries.forEach(entry => {
           if (entry.isIntersecting) {
               const element = entry.target;
               const productId = element.getAttribute('data-id');
+              console.log('Element intersecting:', element, 'productId:', productId);
               if (productId && !element.hasAttribute('data-ratings-loaded')) {
+                  console.log('Loading rating for product:', productId);
                   loadProductRating(element, productId);
                   element.setAttribute('data-ratings-loaded', 'true');
                   lazyLoadObserver.unobserve(element);
+              } else {
+                  console.log('Skipping element - no productId or already loaded');
               }
           }
       });
@@ -198,19 +203,26 @@ document.addEventListener('smootify:loaded', initializeReviewSystem);
 // =================================================================================
 
 async function initializeReviewSystem() {
+  console.log('initializeReviewSystem called');
   const startTime = performance.now();
   
   // Check cache first
   const cachedData = cacheManager.get('allReviews');
   if (cachedData && reviewDataStore.isDataFetched) {
+      console.log('Using cached data');
       setupUI();
       return;
   }
 
-  if (reviewDataStore.isDataFetched) return;
+  if (reviewDataStore.isDataFetched) {
+      console.log('Data already fetched, skipping');
+      return;
+  }
 
   try {
+      console.log('Fetching reviews from API...');
       const allReviews = await fetchReviewsWithRetry();
+      console.log('Fetched reviews:', allReviews.length);
       processReviewData(allReviews);
       setupUI();
       
@@ -322,9 +334,11 @@ function createProductGridObserver(selector) {
 
 function setupLazyLoadedRatings() {
   const productCards = document.querySelectorAll('smootify-product[data-id], .sm-product[data-id]');
+  console.log('setupLazyLoadedRatings found productCards:', productCards.length);
   
   productCards.forEach(card => {
       if (!card.hasAttribute('data-ratings-observed')) {
+          console.log('Setting up lazy loading for card:', card);
           lazyLoadObserver.observe(card);
           card.setAttribute('data-ratings-observed', 'true');
       }
@@ -332,15 +346,23 @@ function setupLazyLoadedRatings() {
 }
 
 function loadProductRating(card, productId) {
+  console.log('loadProductRating called for productId:', productId);
   const reviews = reviewDataStore.reviewsByProductId.get(productId) || [];
   const ratingComponent = card.querySelector('[review="productCard_rating"]');
   
-  if (!ratingComponent) return;
+  console.log('Found reviews:', reviews.length, 'ratingComponent:', ratingComponent);
+  
+  if (!ratingComponent) {
+      console.warn('No rating component found for product:', productId);
+      return;
+  }
 
   const totalReviews = reviews.length;
   const averageRating = totalReviews > 0 
       ? Math.round(reviews.reduce((acc, r) => acc + r.Review_Rating, 0) / totalReviews) 
       : 0;
+
+  console.log('Calculated averageRating:', averageRating, 'totalReviews:', totalReviews);
 
   // Batch DOM operations
   batchDOMOperations([
@@ -349,19 +371,28 @@ function loadProductRating(card, productId) {
 }
 
 function updateRatingDisplay(ratingComponent, averageRating, totalReviews) {
+  console.log('updateRatingDisplay called with averageRating:', averageRating, 'totalReviews:', totalReviews);
+  
   const starContainer = ratingComponent.querySelector('[review="productCard_starRating"]');
   const totalElement = ratingComponent.querySelector('[review="productCard_reviewTotal"]');
 
+  console.log('Found starContainer:', starContainer, 'totalElement:', totalElement);
+
   if (totalElement) {
       totalElement.textContent = totalReviews;
+      console.log('Updated total reviews text');
   }
   
   if (starContainer) {
+      console.log('Calling updateStarRating with container:', starContainer);
       updateStarRating(starContainer, averageRating);
+  } else {
+      console.warn('No star container found');
   }
   
   ratingComponent.style.display = 'flex';
   performanceMetrics.domOperations++;
+  console.log('Rating display update complete');
 }
 
 // =================================================================================
@@ -369,6 +400,8 @@ function updateRatingDisplay(ratingComponent, averageRating, totalReviews) {
 // =================================================================================
 
 function updateStarRating(container, rating) {
+  console.log('updateStarRating called with rating:', rating, 'container:', container);
+  
   // Handle both svg path and direct path elements
   let starPaths = container.querySelectorAll('svg path');
   
@@ -376,6 +409,8 @@ function updateStarRating(container, rating) {
   if (starPaths.length === 0) {
       starPaths = container.querySelectorAll('path');
   }
+  
+  console.log('Found starPaths:', starPaths.length);
   
   if (starPaths.length === 0) {
       console.warn('No star paths found in container:', container);
@@ -386,12 +421,17 @@ function updateStarRating(container, rating) {
   const firstPath = starPaths[0];
   const parentElement = firstPath.parentElement;
   
+  console.log('Parent element tag:', parentElement.tagName);
+  
   // If paths are not in an SVG, wrap them
   if (parentElement.tagName !== 'SVG') {
+      console.log('Wrapping paths in SVG element');
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('viewBox', '0 0 1000 1000');
       svg.setAttribute('width', '100%');
       svg.setAttribute('height', '100%');
+      svg.style.display = 'inline-block';
+      svg.style.verticalAlign = 'middle';
       
       // Move all paths to the SVG
       while (container.firstChild) {
@@ -401,6 +441,7 @@ function updateStarRating(container, rating) {
       
       // Update starPaths reference
       starPaths = svg.querySelectorAll('path');
+      console.log('Updated starPaths count:', starPaths.length);
   }
   
   // Use document fragment to minimize reflows
@@ -408,8 +449,10 @@ function updateStarRating(container, rating) {
   
   starPaths.forEach((path, index) => {
       const clone = path.cloneNode(true);
-      clone.setAttribute('fill', index < rating ? 'gold' : 'none');
+      const fillColor = index < rating ? 'gold' : 'none';
+      clone.setAttribute('fill', fillColor);
       clone.setAttribute('stroke', 'black');
+      console.log(`Star ${index + 1}: fill=${fillColor}, rating=${rating}`);
       fragment.appendChild(clone);
   });
   
@@ -419,6 +462,8 @@ function updateStarRating(container, rating) {
   starPaths.forEach((_, index) => {
       svgElement.appendChild(fragment.children[index].cloneNode(true));
   });
+  
+  console.log('Star rating update complete');
 }
 
 // =================================================================================
@@ -909,3 +954,43 @@ if (typeof module !== 'undefined' && module.exports) {
       debounce
   };
 }
+
+// =================================================================================
+// Debug Functions
+// =================================================================================
+
+// Function to manually test star rating update
+function testStarRating() {
+  console.log('Testing star rating update...');
+  const ratingComponent = document.querySelector('[review="productCard_rating"]');
+  if (ratingComponent) {
+      console.log('Found rating component:', ratingComponent);
+      
+      // Test finding paths directly
+      const starContainer = ratingComponent.querySelector('[review="productCard_starRating"]');
+      if (starContainer) {
+          console.log('Found star container:', starContainer);
+          const paths = starContainer.querySelectorAll('path');
+          console.log('Found paths:', paths.length);
+          paths.forEach((path, index) => {
+              console.log(`Path ${index}:`, path.outerHTML.substring(0, 100) + '...');
+          });
+      }
+      
+      updateRatingDisplay(ratingComponent, 3, 5);
+  } else {
+      console.log('No rating component found');
+  }
+}
+
+// Make test function available globally
+window.testStarRating = testStarRating;
+
+// Function to manually initialize the review system
+function manualInit() {
+  console.log('Manual initialization triggered');
+  initializeReviewSystem();
+}
+
+// Make manual init available globally
+window.manualInit = manualInit;
