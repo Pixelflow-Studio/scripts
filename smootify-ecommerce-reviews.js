@@ -11,14 +11,14 @@
   if (window.smootifyReviewsInitialized) return;
   window.smootifyReviewsInitialized = true;
   
-  // Only run on pages with Smootify elements, product pages, or collection pages
-  const hasSmootifyElements = document.querySelector('smootify-product');
-  const isProductPage = window.location.pathname.includes('/product/');
-  const isCollectionPage = window.location.pathname.includes('/collection/');
-  
-  if (!hasSmootifyElements && !isProductPage && !isCollectionPage) {
-    return;
-  }
+// Run on pages
+const isProductPage = window.location.pathname.includes('/product/');
+const isCollectionPage = window.location.pathname.includes('/collection/');
+const isHomePage = window.location.pathname === '/';
+
+if (!isProductPage && !isCollectionPage && !isHomePage) {
+  return;
+}
 
 // =================================================================================
 // Configuration & Type Definitions
