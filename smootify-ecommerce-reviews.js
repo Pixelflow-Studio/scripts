@@ -6,6 +6,15 @@
 // Wrap everything in an IIFE to avoid global scope pollution
 (function() {
   'use strict';
+  
+  // Prevent multiple initializations
+  if (window.smootifyReviewsInitialized) return;
+  window.smootifyReviewsInitialized = true;
+  
+  // Only run on pages with Smootify elements or product pages
+  if (!document.querySelector('smootify-product') && !window.location.pathname.includes('/product/')) {
+    return;
+  }
 
 // =================================================================================
 // Configuration & Type Definitions
