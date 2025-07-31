@@ -49,7 +49,7 @@ const CONFIG = {
       STROKE_COLOR: 'black',          // Border color for stars
       STROKE_WIDTH: '1px',            // Border width for stars
       SIZE: '16px',                   // Size of stars
-      SPACING: '2px'                  // Space between stars
+      SPACING: '0px'                  // Space between stars
     },
     ANIMATIONS: {
       ENABLED: true,                  // Enable/disable animations
