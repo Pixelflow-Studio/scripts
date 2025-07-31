@@ -45,7 +45,7 @@ const CONFIG = {
   STYLING: {
     STARS: {
       FILLED_COLOR: 'gold',           // Color for filled stars
-      EMPTY_COLOR: 'red',            // Color for empty stars (or 'transparent')
+      EMPTY_COLOR: 'none',            // Color for empty stars (or 'transparent')
       STROKE_COLOR: 'black',          // Border color for stars
       STROKE_WIDTH: '1px',            // Border width for stars
       SIZE: '16px',                   // Size of stars
