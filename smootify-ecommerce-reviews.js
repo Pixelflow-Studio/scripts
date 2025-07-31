@@ -352,13 +352,27 @@ function updateStarRating(container, rating) {
   
   console.log('Updating', starPaths.length, 'star paths with rating:', rating);
   
-  // Simple and direct approach - update each path directly
+  // Enhanced star rendering with better colors and visibility
   starPaths.forEach((path, index) => {
-    const fillColor = index < rating ? 'gold' : 'none';
-    path.setAttribute('fill', fillColor);
-    path.setAttribute('stroke', 'black');
-    console.log(`Star ${index + 1}: fill=${fillColor}`);
+    if (index < rating) {
+      // Filled star - use a bright gold color that's more visible
+      path.setAttribute('fill', '#FFD700'); // Bright gold
+      path.setAttribute('stroke', '#000000'); // Black stroke
+      path.setAttribute('stroke-width', '1'); // Ensure stroke is visible
+      console.log(`Star ${index + 1}: filled with gold`);
+    } else {
+      // Empty star - use transparent fill with visible stroke
+      path.setAttribute('fill', 'transparent'); // Transparent instead of 'none'
+      path.setAttribute('stroke', '#000000'); // Black stroke
+      path.setAttribute('stroke-width', '1'); // Ensure stroke is visible
+      console.log(`Star ${index + 1}: empty with stroke`);
+    }
   });
+  
+  // Force a repaint to ensure changes are visible
+  container.style.display = 'none';
+  container.offsetHeight; // Trigger reflow
+  container.style.display = '';
 }
 
 // =================================================================================
@@ -721,3 +735,60 @@ function cleanup() {
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', cleanup);
+
+// =================================================================================
+// Debugging and Testing Functions
+// =================================================================================
+
+// Function to manually test star rendering
+function testStarRendering() {
+  console.log('=== TESTING STAR RENDERING ===');
+  
+  // Find all star containers
+  const starContainers = document.querySelectorAll('[review="productCard_starRating"]');
+  console.log('Found star containers:', starContainers.length);
+  
+  starContainers.forEach((container, index) => {
+    console.log(`\n--- Testing Container ${index + 1} ---`);
+    console.log('Container:', container);
+    console.log('Container HTML:', container.innerHTML);
+    
+    // Test with different ratings
+    [0, 1, 2, 3, 4, 5].forEach(rating => {
+      console.log(`\nTesting rating: ${rating}`);
+      updateStarRating(container, rating);
+      
+      // Check the results
+      const paths = container.querySelectorAll('path');
+      paths.forEach((path, pathIndex) => {
+        const fill = path.getAttribute('fill');
+        const stroke = path.getAttribute('stroke');
+        console.log(`  Path ${pathIndex + 1}: fill="${fill}", stroke="${stroke}"`);
+      });
+    });
+  });
+}
+
+// Function to check if stars are visible
+function checkStarVisibility() {
+  console.log('=== CHECKING STAR VISIBILITY ===');
+  
+  const starContainers = document.querySelectorAll('[review="productCard_starRating"]');
+  starContainers.forEach((container, index) => {
+    console.log(`\nContainer ${index + 1}:`);
+    console.log('Container visible:', container.offsetWidth > 0 && container.offsetHeight > 0);
+    console.log('Container style:', container.style.cssText);
+    
+    const paths = container.querySelectorAll('path');
+    paths.forEach((path, pathIndex) => {
+      const fill = path.getAttribute('fill');
+      const stroke = path.getAttribute('stroke');
+      const strokeWidth = path.getAttribute('stroke-width');
+      console.log(`  Path ${pathIndex + 1}: fill="${fill}", stroke="${stroke}", stroke-width="${strokeWidth}"`);
+    });
+  });
+}
+
+// Make debugging functions available globally
+window.testStarRendering = testStarRendering;
+window.checkStarVisibility = checkStarVisibility;
