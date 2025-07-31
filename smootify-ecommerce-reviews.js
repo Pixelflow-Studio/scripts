@@ -4,6 +4,12 @@
 
 console.log('Review system script loading...');
 
+// Immediately expose a test function to verify script loading
+window.scriptLoadedTest = function() {
+  console.log('✅ Script is definitely loaded!');
+  return 'SCRIPT_LOADED';
+};
+
 // =================================================================================
 // Configuration and Constants
 // =================================================================================
@@ -836,10 +842,27 @@ window.updateStarRating = updateStarRating;
 window.updateRatingDisplay = updateRatingDisplay;
 window.loadProductRating = loadProductRating;
 
+// Create a simple test function that's guaranteed to work
+window.simpleTest = function() {
+  console.log('✅ Simple test function works!');
+  console.log('CONFIG available:', typeof CONFIG !== 'undefined');
+  console.log('reviewDataStore available:', typeof reviewDataStore !== 'undefined');
+  return 'SUCCESS';
+};
+
 console.log('Review system script loaded successfully!');
 console.log('Debugging functions available:', {
   testScriptLoaded: typeof testScriptLoaded,
   testStarRating: typeof testStarRating,
   testStarRendering: typeof testStarRendering,
-  checkStarVisibility: typeof checkStarVisibility
+  checkStarVisibility: typeof checkStarVisibility,
+  simpleTest: typeof window.simpleTest
 });
+
+// Final verification that functions are exposed
+setTimeout(() => {
+  console.log('=== FINAL VERIFICATION ===');
+  console.log('window.testScriptLoaded:', typeof window.testScriptLoaded);
+  console.log('window.simpleTest:', typeof window.simpleTest);
+  console.log('window.CONFIG:', typeof window.CONFIG);
+}, 100);
