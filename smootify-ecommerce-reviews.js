@@ -1,5 +1,13 @@
 
 // =================================================================================
+// Smootify Review System
+// =================================================================================
+
+// Wrap everything in an IIFE to avoid global scope pollution
+(function() {
+  'use strict';
+
+// =================================================================================
 // Configuration & Type Definitions
 // =================================================================================
 
@@ -129,34 +137,53 @@ async function fetchWithRetry(url, maxRetries = CONFIG.MAX_RETRIES) {
 // Main Execution Block
 // =================================================================================
 
-// Listen for Smootify loaded event
-document.addEventListener('smootify:loaded', initializeReviewSystem);
+// Multiple initialization strategies
+let isInitialized = false;
 
-// Fallback initialization in case the event doesn't fire
-let initializationAttempts = 0;
-const maxAttempts = 10;
-
-function attemptInitialization() {
-    if (initializationAttempts >= maxAttempts) {
-        console.warn('Smootify review system: Max initialization attempts reached');
-        return;
-    }
+function initializeIfReady() {
+    if (isInitialized) return;
     
     // Check if Smootify elements exist
     const smootifyElements = document.querySelectorAll('smootify-product, .sm-product');
     if (smootifyElements.length > 0) {
-        console.log('Smootify review system: Initializing via fallback');
+        console.log('Smootify review system: Initializing');
+        isInitialized = true;
         initializeReviewSystem();
-    } else {
-        initializationAttempts++;
-        setTimeout(attemptInitialization, 500);
     }
 }
 
-// Start fallback initialization after a short delay
-setTimeout(attemptInitialization, 1000);
+// Strategy 1: Listen for Smootify loaded event
+document.addEventListener('smootify:loaded', () => {
+    console.log('Smootify review system: Event received');
+    initializeIfReady();
+});
 
-// Also apply styles immediately in case the event doesn't fire
+// Strategy 2: Check periodically
+let checkAttempts = 0;
+const maxAttempts = 20;
+
+function checkForSmootify() {
+    if (isInitialized || checkAttempts >= maxAttempts) {
+        if (checkAttempts >= maxAttempts) {
+            console.warn('Smootify review system: Max check attempts reached');
+        }
+        return;
+    }
+    
+    checkAttempts++;
+    initializeIfReady();
+    
+    if (!isInitialized) {
+        setTimeout(checkForSmootify, 250);
+    }
+}
+
+// Start checking immediately and after a delay
+checkForSmootify();
+setTimeout(checkForSmootify, 1000);
+setTimeout(checkForSmootify, 2000);
+
+// Strategy 3: Apply styles immediately
 applyCustomStyles();
 
 // =================================================================================
@@ -567,6 +594,8 @@ function formatTimeAgo(timestamp) {
      const months = Math.round(secondsPast / CONFIG.TIME_CONSTANTS.MONTH);
      return months <= 1 ? '1 month ago' : `${months} months ago`;
  }
- const years = Math.round(secondsPast / CONFIG.TIME_CONSTANTS.YEAR);
- return years <= 1 ? '1 year ago' : `${years} years ago`;
+   const years = Math.round(secondsPast / CONFIG.TIME_CONSTANTS.YEAR);
+  return years <= 1 ? '1 year ago' : `${years} years ago`;
 }
+
+})(); // Close the IIFE
