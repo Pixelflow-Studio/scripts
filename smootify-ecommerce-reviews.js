@@ -1,4 +1,10 @@
 // =================================================================================
+// Review System - Smootify E-commerce Reviews
+// =================================================================================
+
+console.log('Review system script loading...');
+
+// =================================================================================
 // Configuration and Constants
 // =================================================================================
 
@@ -792,3 +798,31 @@ function checkStarVisibility() {
 // Make debugging functions available globally
 window.testStarRendering = testStarRendering;
 window.checkStarVisibility = checkStarVisibility;
+
+// Simple test function to verify script is loaded
+function testScriptLoaded() {
+  console.log('Script is loaded!');
+  console.log('CONFIG:', CONFIG);
+  console.log('reviewDataStore:', reviewDataStore);
+  return true;
+}
+
+// Make test function available globally
+window.testScriptLoaded = testScriptLoaded;
+
+// Function to manually test star rating update
+function testStarRating() {
+  console.log('Testing star rating update...');
+  const ratingComponent = document.querySelector('[review="productCard_rating"]');
+  if (ratingComponent) {
+    console.log('Found rating component:', ratingComponent);
+    updateRatingDisplay(ratingComponent, 3, 5);
+  } else {
+    console.log('No rating component found');
+  }
+}
+
+// Make test function available globally
+window.testStarRating = testStarRating;
+
+console.log('Review system script loaded successfully!');
