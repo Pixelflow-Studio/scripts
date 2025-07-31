@@ -196,7 +196,17 @@ const cacheManager = new CacheManager();
 // Main Execution Block
 // =================================================================================
 
+console.log('Review system script loaded!');
+
 document.addEventListener('smootify:loaded', initializeReviewSystem);
+
+// Also try to initialize immediately if the event doesn't fire
+setTimeout(() => {
+  if (!reviewDataStore.isDataFetched) {
+      console.log('No smootify:loaded event detected, initializing manually...');
+      initializeReviewSystem();
+  }
+}, 1000);
 
 // =================================================================================
 // Enhanced Initialization and Data Fetching
@@ -1064,3 +1074,57 @@ function forceTriggerRatings() {
 
 // Make force trigger available globally
 window.forceTriggerRatings = forceTriggerRatings;
+
+// Simple test function to verify script is loaded
+function testScriptLoaded() {
+  console.log('Script is loaded!');
+  console.log('CONFIG:', CONFIG);
+  console.log('reviewDataStore:', reviewDataStore);
+  return true;
+}
+
+// Make test function available globally
+window.testScriptLoaded = testScriptLoaded;
+
+// Immediately available functions
+window.checkReviews = checkReviews;
+window.forceTriggerRatings = forceTriggerRatings;
+window.testStarRating = testStarRating;
+window.manualInit = manualInit;
+window.testProductRating = testProductRating;
+
+console.log('Global functions made available:', {
+  checkReviews: typeof checkReviews,
+  forceTriggerRatings: typeof forceTriggerRatings,
+  testStarRating: typeof testStarRating,
+  manualInit: typeof manualInit,
+  testProductRating: typeof testProductRating
+});
+
+// Function to check script status
+function checkScriptStatus() {
+  console.log('=== SCRIPT STATUS CHECK ===');
+  console.log('Script loaded:', true);
+  console.log('CONFIG defined:', typeof CONFIG !== 'undefined');
+  console.log('reviewDataStore defined:', typeof reviewDataStore !== 'undefined');
+  console.log('Data fetched:', reviewDataStore.isDataFetched);
+  console.log('Total reviews:', reviewDataStore.totalReviews);
+  console.log('Products with reviews:', reviewDataStore.reviewsByProductId.size);
+  
+  // Check if DOM is ready
+  console.log('DOM ready:', document.readyState);
+  console.log('Product cards found:', document.querySelectorAll('[data-id]').length);
+  
+  return {
+    scriptLoaded: true,
+    configDefined: typeof CONFIG !== 'undefined',
+    dataStoreDefined: typeof reviewDataStore !== 'undefined',
+    dataFetched: reviewDataStore.isDataFetched,
+    totalReviews: reviewDataStore.totalReviews,
+    productsWithReviews: reviewDataStore.reviewsByProductId.size,
+    domReady: document.readyState,
+    productCards: document.querySelectorAll('[data-id]').length
+  };
+}
+
+window.checkScriptStatus = checkScriptStatus;
