@@ -155,6 +155,8 @@ function setupProductPageReviews() {
     }
 }
 
+// ... (All other functions below this line remain the same)
+
 function setupFilterListeners(reviewList) {
     const filterLinks = document.querySelectorAll('.review_ui-filter [reviewsort], .review_ui-filter [sort="clear"]');
     filterLinks.forEach(link => {
