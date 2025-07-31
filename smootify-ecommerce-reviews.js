@@ -135,7 +135,44 @@ const lazyLoadObserver = new IntersectionObserver(
 // Main Execution Block
 // =================================================================================
 
+// Listen for Smootify loading events
 document.addEventListener('smootify:loaded', initializeReviewSystem);
+
+// Also listen for DOM changes that might indicate Smootify re-rendering
+const smootifyObserver = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+      // Check if new product cards were added
+      const hasNewCards = Array.from(mutation.addedNodes).some(node => 
+        node.nodeType === 1 && (
+          node.matches('smootify-product[data-id]') || 
+          node.querySelector('smootify-product[data-id]')
+        )
+      );
+      
+      if (hasNewCards) {
+        console.log('New product cards detected, re-initializing ratings...');
+        setTimeout(() => {
+          setupLazyLoadedRatings();
+          // Force load ratings for all visible cards
+          const allCards = document.querySelectorAll('smootify-product[data-id], .sm-product[data-id]');
+          allCards.forEach(card => {
+            const productId = card.getAttribute('data-id');
+            if (productId && productId !== 'search') {
+              loadProductRating(card, productId);
+            }
+          });
+        }, 100);
+      }
+    }
+  });
+});
+
+// Start observing the document for Smootify changes
+smootifyObserver.observe(document.body, {
+  childList: true,
+  subtree: true
+});
 
 // Also try to initialize immediately if the event doesn't fire
 setTimeout(() => {
@@ -381,10 +418,29 @@ function updateStarRating(container, rating) {
     }
   });
   
+  // Mark the container as updated to prevent re-overwriting
+  container.setAttribute('data-rating-updated', rating.toString());
+  
   // Force a repaint to ensure changes are visible
   container.style.display = 'none';
   container.offsetHeight; // Trigger reflow
   container.style.display = '';
+  
+  // Set up a periodic check to ensure stars stay updated
+  setTimeout(() => {
+    const currentRating = container.getAttribute('data-rating-updated');
+    if (currentRating && parseInt(currentRating) === rating) {
+      // Re-apply the rating if it was reset
+      const paths = container.querySelectorAll('path');
+      paths.forEach((path, index) => {
+        if (index < rating) {
+          path.setAttribute('fill', '#FFD700');
+        } else {
+          path.setAttribute('fill', 'none');
+        }
+      });
+    }
+  }, 500);
 }
 
 // Function to create stars if they don't exist (not needed since stars are already in HTML)
@@ -753,6 +809,34 @@ function cleanup() {
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', cleanup);
+
+// Set up periodic rating restoration to prevent Smootify from overwriting our changes
+setInterval(() => {
+  if (reviewDataStore.isDataFetched) {
+    const allCards = document.querySelectorAll('smootify-product[data-id], .sm-product[data-id]');
+    allCards.forEach(card => {
+      const productId = card.getAttribute('data-id');
+      if (productId && productId !== 'search') {
+        const ratingComponent = card.querySelector('[review="productCard_rating"]');
+        if (ratingComponent) {
+          const starContainer = ratingComponent.querySelector('[review="productCard_starRating"]');
+          if (starContainer) {
+            const expectedRating = starContainer.getAttribute('data-rating-updated');
+            if (expectedRating) {
+              // Check if stars were reset
+              const paths = starContainer.querySelectorAll('path');
+              const firstPath = paths[0];
+              if (firstPath && firstPath.getAttribute('fill') === 'none' && parseInt(expectedRating) > 0) {
+                console.log('Detected stars were reset, restoring rating:', expectedRating);
+                updateStarRating(starContainer, parseInt(expectedRating));
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+}, 2000); // Check every 2 seconds
 
 // =================================================================================
 // Debugging and Testing Functions
