@@ -346,38 +346,37 @@ function updateRatingDisplay(ratingComponent, averageRating, totalReviews) {
 function updateStarRating(container, rating) {
   console.log('updateStarRating called with rating:', rating, 'container:', container);
   
-  // Check if stars exist, if not create them
-  let starPaths = container.querySelectorAll('path');
-  console.log('Found existing star paths:', starPaths.length);
+  // Find all SVG elements (each is a star)
+  const starSvgs = container.querySelectorAll('svg');
+  console.log('Found star SVGs:', starSvgs.length);
   
-  if (starPaths.length === 0) {
-    console.log('No stars found, creating stars...');
-    createStars(container);
-    starPaths = container.querySelectorAll('path');
-    console.log('Created star paths:', starPaths.length);
-  }
-  
-  if (starPaths.length === 0) {
-    console.warn('Still no star paths found in container:', container);
+  if (starSvgs.length === 0) {
+    console.warn('No star SVGs found in container:', container);
     console.log('Container HTML:', container.innerHTML);
     return;
   }
   
-  console.log('Updating', starPaths.length, 'star paths with rating:', rating);
+  console.log('Updating', starSvgs.length, 'star SVGs with rating:', rating);
   
-  // Enhanced star rendering with better colors and visibility
-  starPaths.forEach((path, index) => {
+  // Update each SVG star
+  starSvgs.forEach((svg, index) => {
+    const path = svg.querySelector('path');
+    if (!path) {
+      console.warn(`No path found in SVG ${index + 1}`);
+      return;
+    }
+    
     if (index < rating) {
       // Filled star - use a bright gold color that's more visible
       path.setAttribute('fill', '#FFD700'); // Bright gold
       path.setAttribute('stroke', '#000000'); // Black stroke
-      path.setAttribute('stroke-width', '1'); // Ensure stroke is visible
+      path.setAttribute('stroke-width', '15'); // Keep original stroke width
       console.log(`Star ${index + 1}: filled with gold`);
     } else {
       // Empty star - use transparent fill with visible stroke
-      path.setAttribute('fill', 'transparent'); // Transparent instead of 'none'
+      path.setAttribute('fill', 'none'); // No fill for empty stars
       path.setAttribute('stroke', '#000000'); // Black stroke
-      path.setAttribute('stroke-width', '1'); // Ensure stroke is visible
+      path.setAttribute('stroke-width', '15'); // Keep original stroke width
       console.log(`Star ${index + 1}: empty with stroke`);
     }
   });
@@ -388,29 +387,10 @@ function updateStarRating(container, rating) {
   container.style.display = '';
 }
 
-// Function to create stars if they don't exist
+// Function to create stars if they don't exist (not needed since stars are already in HTML)
 function createStars(container) {
-  // Check if stars already exist
-  if (container.querySelector('path')) {
-    console.log('Stars already exist, skipping creation');
-    return;
-  }
-  
-  const starSVG = `
-    <svg width="100" height="20" viewBox="0 0 100 20" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10 0l3.09 9.51H22l-8.45 6.14 3.09 9.51L10 19.02l-6.64 6.14 3.09-9.51L-2 9.51h8.91z" fill="transparent" stroke="black" stroke-width="0.5"/>
-      <path d="M30 0l3.09 9.51H42l-8.45 6.14 3.09 9.51L30 19.02l-6.64 6.14 3.09-9.51L18 9.51h8.91z" fill="transparent" stroke="black" stroke-width="0.5"/>
-      <path d="M50 0l3.09 9.51H62l-8.45 6.14 3.09 9.51L50 19.02l-6.64 6.14 3.09-9.51L38 9.51h8.91z" fill="transparent" stroke="black" stroke-width="0.5"/>
-      <path d="M70 0l3.09 9.51H82l-8.45 6.14 3.09 9.51L70 19.02l-6.64 6.14 3.09-9.51L58 9.51h8.91z" fill="transparent" stroke="black" stroke-width="0.5"/>
-      <path d="M90 0l3.09 9.51H102l-8.45 6.14 3.09 9.51L90 19.02l-6.64 6.14 3.09-9.51L78 9.51h8.91z" fill="transparent" stroke="black" stroke-width="0.5"/>
-    </svg>
-  `;
-  
-  container.innerHTML = starSVG;
-  console.log('Stars created in container');
-  
-  // Mark the container as having stars
-  container.setAttribute('data-stars-created', 'true');
+  console.log('Stars are already in HTML, no need to create them');
+  return;
 }
 
 // =================================================================================
