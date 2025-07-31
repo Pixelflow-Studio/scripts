@@ -118,14 +118,45 @@ function populateProductCardRatings() {
         if (totalElement) totalElement.textContent = totalReviews;
         
         if (starContainer) {
+            // Debug: Check container visibility and size
+            console.log('Star container before update:', {
+                offsetWidth: starContainer.offsetWidth,
+                offsetHeight: starContainer.offsetHeight,
+                clientWidth: starContainer.clientWidth,
+                clientHeight: starContainer.clientHeight,
+                style: starContainer.style.cssText,
+                computedStyle: window.getComputedStyle(starContainer)
+            });
+
+            // Force the container to be visible and have dimensions
+            starContainer.style.visibility = 'visible';
+            starContainer.style.display = 'flex';
+            starContainer.style.width = 'auto';
+            starContainer.style.height = 'auto';
+            starContainer.style.minWidth = '100px';
+            starContainer.style.minHeight = '20px';
+
             const starSvgPaths = starContainer.querySelectorAll('svg path');
+            console.log('Found SVG paths:', starSvgPaths.length);
+            
             starSvgPaths.forEach((path, index) => {
                 path.setAttribute('fill', index < averageRating ? 'gold' : 'none');
                 path.setAttribute('stroke', 'black');
+                console.log(`Star ${index + 1}: fill="${index < averageRating ? 'gold' : 'none'}"`);
+            });
+
+            // Debug: Check container after update
+            console.log('Star container after update:', {
+                offsetWidth: starContainer.offsetWidth,
+                offsetHeight: starContainer.offsetHeight,
+                clientWidth: starContainer.clientWidth,
+                clientHeight: starContainer.clientHeight,
+                style: starContainer.style.cssText
             });
         }
         
         ratingComponent.style.display = 'flex';
+        ratingComponent.style.visibility = 'visible';
     });
 }
 
@@ -154,8 +185,6 @@ function setupProductPageReviews() {
         applyAndRenderReviews(productReviews);
     }
 }
-
-// ... (All other functions below this line remain the same)
 
 function setupFilterListeners(reviewList) {
     const filterLinks = document.querySelectorAll('.review_ui-filter [reviewsort], .review_ui-filter [sort="clear"]');
@@ -337,3 +366,130 @@ function formatTimeAgo(timestamp) {
     const years = Math.round(secondsPast / 31536000);
     return years <= 1 ? '1 year ago' : `${years} years ago`;
 }
+
+// =================================================================================
+// Debugging Functions
+// =================================================================================
+
+// Function to check and fix star container visibility
+window.checkStarVisibility = function() {
+    console.log('=== CHECKING STAR CONTAINER VISIBILITY ===');
+    
+    const starContainers = document.querySelectorAll('[review="productCard_starRating"]');
+    console.log('Found star containers:', starContainers.length);
+    
+    starContainers.forEach((container, index) => {
+        console.log(`\n--- Container ${index + 1} ---`);
+        console.log('Container element:', container);
+        console.log('Container HTML:', container.innerHTML);
+        
+        const computedStyle = window.getComputedStyle(container);
+        console.log('Computed styles:', {
+            display: computedStyle.display,
+            visibility: computedStyle.visibility,
+            opacity: computedStyle.opacity,
+            width: computedStyle.width,
+            height: computedStyle.height,
+            position: computedStyle.position,
+            zIndex: computedStyle.zIndex
+        });
+        
+        console.log('Dimensions:', {
+            offsetWidth: container.offsetWidth,
+            offsetHeight: container.offsetHeight,
+            clientWidth: container.clientWidth,
+            clientHeight: container.clientHeight,
+            scrollWidth: container.scrollWidth,
+            scrollHeight: container.scrollHeight
+        });
+        
+        // Check if container has any content
+        const paths = container.querySelectorAll('path');
+        console.log('Path elements found:', paths.length);
+        
+        if (paths.length > 0) {
+            console.log('First path element:', paths[0]);
+            console.log('First path attributes:', {
+                fill: paths[0].getAttribute('fill'),
+                stroke: paths[0].getAttribute('stroke'),
+                strokeWidth: paths[0].getAttribute('stroke-width')
+            });
+        }
+    });
+};
+
+// Function to force fix all star containers
+window.fixStarVisibility = function() {
+    console.log('=== FIXING STAR CONTAINER VISIBILITY ===');
+    
+    const starContainers = document.querySelectorAll('[review="productCard_starRating"]');
+    console.log('Fixing', starContainers.length, 'star containers');
+    
+    starContainers.forEach((container, index) => {
+        console.log(`Fixing container ${index + 1}`);
+        
+        // Force visibility
+        container.style.visibility = 'visible';
+        container.style.display = 'flex';
+        container.style.width = 'auto';
+        container.style.height = 'auto';
+        container.style.minWidth = '100px';
+        container.style.minHeight = '20px';
+        container.style.opacity = '1';
+        container.style.position = 'relative';
+        container.style.zIndex = '1';
+        
+        // Also fix parent rating component
+        const ratingComponent = container.closest('[review="productCard_rating"]');
+        if (ratingComponent) {
+            ratingComponent.style.visibility = 'visible';
+            ratingComponent.style.display = 'flex';
+            ratingComponent.style.opacity = '1';
+        }
+        
+        console.log(`Container ${index + 1} fixed. New dimensions:`, {
+            offsetWidth: container.offsetWidth,
+            offsetHeight: container.offsetHeight
+        });
+    });
+    
+    console.log('All star containers should now be visible!');
+};
+
+// Function to test star rendering
+window.testStarRendering = function() {
+    console.log('=== TESTING STAR RENDERING ===');
+    
+    const starContainers = document.querySelectorAll('[review="productCard_starRating"]');
+    console.log('Found star containers:', starContainers.length);
+    
+    starContainers.forEach((container, index) => {
+        console.log(`\nTesting container ${index + 1}`);
+        
+        // Force visibility first
+        container.style.visibility = 'visible';
+        container.style.display = 'flex';
+        container.style.minWidth = '100px';
+        container.style.minHeight = '20px';
+        
+        const paths = container.querySelectorAll('path');
+        console.log('Found paths:', paths.length);
+        
+        // Test with different ratings
+        [1, 2, 3, 4, 5].forEach(rating => {
+            console.log(`Testing rating: ${rating}`);
+            paths.forEach((path, pathIndex) => {
+                const fill = pathIndex < rating ? 'gold' : 'none';
+                path.setAttribute('fill', fill);
+                path.setAttribute('stroke', 'black');
+                console.log(`  Path ${pathIndex + 1}: fill="${fill}"`);
+            });
+            
+            // Check dimensions after update
+            console.log('Container dimensions:', {
+                offsetWidth: container.offsetWidth,
+                offsetHeight: container.offsetHeight
+            });
+        });
+    });
+};
