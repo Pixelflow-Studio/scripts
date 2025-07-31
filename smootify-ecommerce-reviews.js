@@ -336,9 +336,19 @@ function setupLazyLoadedRatings() {
   const productCards = document.querySelectorAll('smootify-product[data-id], .sm-product[data-id]');
   console.log('setupLazyLoadedRatings found productCards:', productCards.length);
   
+  if (productCards.length === 0) {
+      console.log('No product cards found. Trying alternative selectors...');
+      const alternativeCards = document.querySelectorAll('[data-id]');
+      console.log('Alternative cards found:', alternativeCards.length);
+      alternativeCards.forEach(card => {
+          console.log('Alternative card:', card.tagName, card.getAttribute('data-id'));
+      });
+  }
+  
   productCards.forEach(card => {
       if (!card.hasAttribute('data-ratings-observed')) {
           console.log('Setting up lazy loading for card:', card);
+          console.log('Card data-id:', card.getAttribute('data-id'));
           lazyLoadObserver.observe(card);
           card.setAttribute('data-ratings-observed', 'true');
       }
@@ -994,3 +1004,63 @@ function manualInit() {
 
 // Make manual init available globally
 window.manualInit = manualInit;
+
+// Function to manually trigger rating update for a specific product
+function testProductRating(productId) {
+  console.log('Testing product rating for:', productId);
+  const card = document.querySelector(`[data-id="${productId}"]`);
+  if (card) {
+      console.log('Found card for product:', productId);
+      loadProductRating(card, productId);
+  } else {
+      console.log('No card found for product:', productId);
+      // Try to find any card with data-id
+      const allCards = document.querySelectorAll('[data-id]');
+      console.log('All cards with data-id:', allCards.length);
+      allCards.forEach(card => {
+          console.log('Card:', card.tagName, card.getAttribute('data-id'));
+      });
+  }
+}
+
+// Make test product rating available globally
+window.testProductRating = testProductRating;
+
+// Function to check available reviews
+function checkReviews() {
+  console.log('Checking reviews in data store...');
+  console.log('Total reviews loaded:', reviewDataStore.totalReviews);
+  console.log('Products with reviews:', reviewDataStore.reviewsByProductId.size);
+  
+  // Show first few products
+  let count = 0;
+  for (const [productId, reviews] of reviewDataStore.reviewsByProductId) {
+      if (count < 5) {
+          console.log(`Product ${productId}: ${reviews.length} reviews`);
+          const avgRating = reviews.reduce((acc, r) => acc + r.Review_Rating, 0) / reviews.length;
+          console.log(`  Average rating: ${avgRating.toFixed(2)}`);
+      }
+      count++;
+  }
+}
+
+// Make check reviews available globally
+window.checkReviews = checkReviews;
+
+// Function to force trigger intersection observer for all cards
+function forceTriggerRatings() {
+  console.log('Forcing rating trigger for all cards...');
+  const allCards = document.querySelectorAll('[data-id]');
+  console.log('Found cards:', allCards.length);
+  
+  allCards.forEach(card => {
+      const productId = card.getAttribute('data-id');
+      if (productId) {
+          console.log('Forcing rating load for product:', productId);
+          loadProductRating(card, productId);
+      }
+  });
+}
+
+// Make force trigger available globally
+window.forceTriggerRatings = forceTriggerRatings;
