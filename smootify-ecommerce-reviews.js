@@ -390,6 +390,12 @@ function updateStarRating(container, rating) {
 
 // Function to create stars if they don't exist
 function createStars(container) {
+  // Check if stars already exist
+  if (container.querySelector('path')) {
+    console.log('Stars already exist, skipping creation');
+    return;
+  }
+  
   const starSVG = `
     <svg width="100" height="20" viewBox="0 0 100 20" xmlns="http://www.w3.org/2000/svg">
       <path d="M10 0l3.09 9.51H22l-8.45 6.14 3.09 9.51L10 19.02l-6.64 6.14 3.09-9.51L-2 9.51h8.91z" fill="transparent" stroke="black" stroke-width="0.5"/>
@@ -402,6 +408,9 @@ function createStars(container) {
   
   container.innerHTML = starSVG;
   console.log('Stars created in container');
+  
+  // Mark the container as having stars
+  container.setAttribute('data-stars-created', 'true');
 }
 
 // =================================================================================
@@ -929,4 +938,43 @@ setTimeout(() => {
     testStarRating: typeof window.testStarRating,
     forceLoadRatings: typeof window.forceLoadRatings
   });
+  
+  // Function to ensure all rating components are visible and have stars
+  window.ensureAllRatingsVisible = function() {
+    console.log('=== ENSURING ALL RATINGS ARE VISIBLE ===');
+    const allProductCards = document.querySelectorAll('smootify-product[data-id], .sm-product[data-id]');
+    console.log('Found product cards:', allProductCards.length);
+    
+    allProductCards.forEach((card, index) => {
+      const productId = card.getAttribute('data-id');
+      if (productId && productId !== 'search') {
+        console.log(`Processing card ${index + 1}:`, productId);
+        
+        const ratingComponent = card.querySelector('[review="productCard_rating"]');
+        if (ratingComponent) {
+          // Make rating component visible
+          ratingComponent.style.visibility = 'visible';
+          ratingComponent.style.display = 'flex';
+          
+          const starContainer = ratingComponent.querySelector('[review="productCard_starRating"]');
+          if (starContainer) {
+            // Make star container visible
+            starContainer.style.visibility = 'visible';
+            
+            // Create stars if they don't exist
+            if (!starContainer.querySelector('path')) {
+              console.log(`Creating stars for card ${index + 1}`);
+              createStars(starContainer);
+            }
+            
+            // Load rating data
+            loadProductRating(card, productId);
+          }
+        }
+      }
+    });
+    
+    console.log('All ratings should now be visible!');
+    return 'RATINGS_VISIBLE';
+  };
 })();
