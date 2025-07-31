@@ -96,6 +96,88 @@ const reviewDataStore = {
  isDataFetched: false
 };
 
+// =================================================================================
+// Caching System
+// =================================================================================
+
+const CACHE_CONFIG = {
+  CACHE_KEY: 'smootify_reviews_cache',
+  CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+  VERSION: '1.0' // Increment this when you make breaking changes
+};
+
+/**
+ * Cache management utilities
+ */
+const cacheManager = {
+  /**
+   * Save data to localStorage with timestamp
+   */
+  save: function(data) {
+    try {
+      const cacheData = {
+        data: data,
+        timestamp: Date.now(),
+        version: CACHE_CONFIG.VERSION
+      };
+      localStorage.setItem(CACHE_CONFIG.CACHE_KEY, JSON.stringify(cacheData));
+      console.log('Smootify reviews: Data cached successfully');
+    } catch (error) {
+      console.warn('Smootify reviews: Failed to save cache', error);
+    }
+  },
+
+  /**
+   * Load data from localStorage if valid
+   */
+  load: function() {
+    try {
+      const cached = localStorage.getItem(CACHE_CONFIG.CACHE_KEY);
+      if (!cached) return null;
+
+      const cacheData = JSON.parse(cached);
+      
+      // Check if cache is expired
+      const isExpired = Date.now() - cacheData.timestamp > CACHE_CONFIG.CACHE_DURATION;
+      
+      // Check if version is outdated
+      const isOutdated = cacheData.version !== CACHE_CONFIG.VERSION;
+      
+      if (isExpired || isOutdated) {
+        console.log('Smootify reviews: Cache expired or outdated, will fetch fresh data');
+        this.clear();
+        return null;
+      }
+
+      console.log('Smootify reviews: Loading from cache');
+      return cacheData.data;
+    } catch (error) {
+      console.warn('Smootify reviews: Failed to load cache', error);
+      this.clear();
+      return null;
+    }
+  },
+
+  /**
+   * Clear the cache
+   */
+  clear: function() {
+    try {
+      localStorage.removeItem(CACHE_CONFIG.CACHE_KEY);
+      console.log('Smootify reviews: Cache cleared');
+    } catch (error) {
+      console.warn('Smootify reviews: Failed to clear cache', error);
+    }
+  },
+
+  /**
+   * Check if cache exists and is valid
+   */
+  isValid: function() {
+    return this.load() !== null;
+  }
+};
+
 /** @type {SortAndFilter} */
 let currentSortAndFilter = {
  sort: 'Newest',
@@ -213,17 +295,39 @@ async function initializeReviewSystem() {
  });
 
  try {
-     const response = await fetchWithRetry(CONFIG.API_URL);
-     const allReviews = await response.json();
-     reviewDataStore.isDataFetched = true;
+     // Try to load from cache first
+     const cachedData = cacheManager.load();
+     
+     if (cachedData) {
+         // Use cached data
+         reviewDataStore.isDataFetched = true;
+         
+         // Restore the Map from cached data
+         reviewDataStore.reviewsByProductId = new Map();
+         cachedData.forEach(([productId, reviews]) => {
+             reviewDataStore.reviewsByProductId.set(productId, reviews);
+         });
+         
+         console.log('Smootify reviews: Loaded from cache');
+     } else {
+         // Fetch fresh data from API
+         console.log('Smootify reviews: Fetching fresh data from API');
+         const response = await fetchWithRetry(CONFIG.API_URL);
+         const allReviews = await response.json();
+         reviewDataStore.isDataFetched = true;
 
-     allReviews.forEach(review => {
-         const productId = review.Shopify_ID;
-         if (!reviewDataStore.reviewsByProductId.has(productId)) {
-             reviewDataStore.reviewsByProductId.set(productId, []);
-         }
-         reviewDataStore.reviewsByProductId.get(productId).push(review);
-     });
+         allReviews.forEach(review => {
+             const productId = review.Shopify_ID;
+             if (!reviewDataStore.reviewsByProductId.has(productId)) {
+                 reviewDataStore.reviewsByProductId.set(productId, []);
+             }
+             reviewDataStore.reviewsByProductId.get(productId).push(review);
+         });
+         
+         // Cache the data for future use
+         const dataToCache = Array.from(reviewDataStore.reviewsByProductId.entries());
+         cacheManager.save(dataToCache);
+     }
      
      populateProductCardRatings();
      
