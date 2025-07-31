@@ -275,15 +275,25 @@ function setupLazyLoadedRatings() {
 }
 
 function loadProductRating(card, productId) {
+  console.log('loadProductRating called for productId:', productId);
+  
   const reviews = reviewDataStore.reviewsByProductId.get(productId) || [];
   const ratingComponent = card.querySelector('[review="productCard_rating"]');
   
-  if (!ratingComponent) return;
+  console.log('Found reviews:', reviews.length);
+  console.log('Found ratingComponent:', !!ratingComponent);
+  
+  if (!ratingComponent) {
+    console.warn('No rating component found for product:', productId);
+    return;
+  }
 
   const totalReviews = reviews.length;
   const averageRating = totalReviews > 0 
     ? Math.round(reviews.reduce((acc, r) => acc + r.Review_Rating, 0) / totalReviews) 
     : 0;
+
+  console.log('Calculated averageRating:', averageRating, 'totalReviews:', totalReviews);
 
   // Batch DOM operations
   batchDOMOperations([
@@ -292,19 +302,29 @@ function loadProductRating(card, productId) {
 }
 
 function updateRatingDisplay(ratingComponent, averageRating, totalReviews) {
+  console.log('updateRatingDisplay called with averageRating:', averageRating, 'totalReviews:', totalReviews);
+  
   const starContainer = ratingComponent.querySelector('[review="productCard_starRating"]');
   const totalElement = ratingComponent.querySelector('[review="productCard_reviewTotal"]');
 
+  console.log('Found starContainer:', !!starContainer);
+  console.log('Found totalElement:', !!totalElement);
+
   if (totalElement) {
     totalElement.textContent = totalReviews;
+    console.log('Updated total reviews to:', totalReviews);
   }
   
   if (starContainer) {
+    console.log('Calling updateStarRating with container:', starContainer);
     updateStarRating(starContainer, averageRating);
+  } else {
+    console.warn('No star container found in rating component');
   }
   
   ratingComponent.style.display = 'flex';
   performanceMetrics.domOperations++;
+  console.log('Rating display updated successfully');
 }
 
 // =================================================================================
@@ -312,33 +332,32 @@ function updateRatingDisplay(ratingComponent, averageRating, totalReviews) {
 // =================================================================================
 
 function updateStarRating(container, rating) {
+  console.log('updateStarRating called with rating:', rating, 'container:', container);
+  
   // Handle both svg path and direct path elements
   let starPaths = container.querySelectorAll('svg path');
+  console.log('Found svg paths:', starPaths.length);
   
   // If no svg paths found, look for direct path elements
   if (starPaths.length === 0) {
     starPaths = container.querySelectorAll('path');
+    console.log('Found direct paths:', starPaths.length);
   }
   
   if (starPaths.length === 0) {
     console.warn('No star paths found in container:', container);
+    console.log('Container HTML:', container.innerHTML);
     return;
   }
   
-  // Use document fragment to minimize reflows
-  const fragment = document.createDocumentFragment();
+  console.log('Updating', starPaths.length, 'star paths with rating:', rating);
   
+  // Simple and direct approach - update each path directly
   starPaths.forEach((path, index) => {
-    const clone = path.cloneNode(true);
-    clone.setAttribute('fill', index < rating ? 'gold' : 'none');
-    clone.setAttribute('stroke', 'black');
-    fragment.appendChild(clone);
-  });
-  
-  // Single DOM operation to replace all stars
-  container.innerHTML = '';
-  starPaths.forEach((_, index) => {
-    container.appendChild(fragment.children[index].cloneNode(true));
+    const fillColor = index < rating ? 'gold' : 'none';
+    path.setAttribute('fill', fillColor);
+    path.setAttribute('stroke', 'black');
+    console.log(`Star ${index + 1}: fill=${fillColor}`);
   });
 }
 
