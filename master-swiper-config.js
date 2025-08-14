@@ -183,12 +183,22 @@
     // Track if page is being restored from cache
     let isPageRestored = false;
     
+    // Track initialization state
+    let isInitializing = false;
+    
     function setupSwipers() {
         // Check if Swiper is available
         if (typeof Swiper === 'undefined') {
             console.warn('Swiper library not loaded. Skipping initialization.');
             return;
         }
+        
+        // Prevent multiple simultaneous initializations
+        if (isInitializing) {
+            return;
+        }
+        
+        isInitializing = true;
         
         // Add class to body to indicate JavaScript is running
         document.body.classList.add('swiper-js-loaded');
@@ -203,22 +213,24 @@
             document.body.classList.add('swiper-restored');
         }
         
-        // Ensure slides are visible when page is restored from cache
-        const allSwipers = document.querySelectorAll('.swiper');
-        allSwipers.forEach(swiperEl => {
-            const wrapperEl = swiperEl.querySelector('.swiper-wrapper');
-            if (wrapperEl) {
-                // Force slides to be visible with smooth transition
-                wrapperEl.style.opacity = '1';
-                wrapperEl.style.transition = isPageRestored ? 'opacity 0.5s ease-in-out' : 'opacity 0.3s ease';
-            }
-        });
-  
         // Add CSS to hide slides initially - only when JavaScript is running
         if (!document.getElementById('swiper-hide-styles')) {
             const style = document.createElement('style');
             style.id = 'swiper-hide-styles';
             style.textContent = `
+                /* Hide all swipers until they're ready */
+                .swiper-js-loaded .swiper:not(.swiper-ready) {
+                    opacity: 0 !important;
+                    visibility: hidden !important;
+                    transition: opacity 0.3s ease, visibility 0.3s ease;
+                }
+                
+                /* Show swipers when they're ready */
+                .swiper-js-loaded .swiper.swiper-ready {
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                }
+                
                 /* Only apply hiding when JavaScript is running and Swiper is available */
                 .swiper-js-loaded .swiper:not(.swiper-initialized):not(.swiper-flex-mode) .swiper-wrapper {
                     opacity: 0;
@@ -257,9 +269,34 @@
                 .swiper-loaded {
                     opacity: 1;
                 }
+                
+                /* Ensure swipers are hidden by default */
+                .swiper {
+                    opacity: 0;
+                    visibility: hidden;
+                    transition: opacity 0.3s ease, visibility 0.3s ease;
+                }
+                
+                /* Show swipers only when ready */
+                .swiper.swiper-ready {
+                    opacity: 1;
+                    visibility: visible;
+                }
             `;
             document.head.appendChild(style);
         }
+        
+        // Hide all swipers initially
+        const allSwipers = document.querySelectorAll('.swiper');
+        allSwipers.forEach(swiperEl => {
+            swiperEl.classList.remove('swiper-ready');
+            const wrapperEl = swiperEl.querySelector('.swiper-wrapper');
+            if (wrapperEl) {
+                // Force slides to be visible with smooth transition
+                wrapperEl.style.opacity = '1';
+                wrapperEl.style.transition = isPageRestored ? 'opacity 0.5s ease-in-out' : 'opacity 0.3s ease';
+            }
+        });
   
         swiperConfigurations.forEach(config => {
             const swiperElements = cachedQuerySelector(config.selector);
@@ -330,6 +367,9 @@
                                         }
                                     }
                                     
+                                    // Mark as ready and show
+                                    swiperEl.classList.add('swiper-ready');
+                                    
                                     console.log(`Swiper not initialized for ${config.selector} - only ${slideCount} slides (4 or fewer) on desktop`);
                                                                 } else {
                                     // Mobile OR more than 4 slides: Initialize swiper normally
@@ -361,6 +401,9 @@
                                         }
                                     }
                                     
+                                    // Mark as ready and show
+                                    swiperEl.classList.add('swiper-ready');
+                                    
                                     console.log(`Swiper initialized for: ${config.selector} - ${slideCount} slides`);
                                 }
                                 
@@ -375,10 +418,13 @@
                             // Just update existing instance
                             swiperEl.swiper.update();
                             swiperEl.classList.add('swiper-initialized');
+                            swiperEl.classList.add('swiper-ready');
                             //console.log(`Swiper updated for: ${config.selector}`);
                         }
                     } catch (error) {
                         console.error(`Error initializing/updating Swiper for ${config.selector}:`, error);
+                        // Mark as ready even if there's an error to prevent permanent hiding
+                        swiperEl.classList.add('swiper-ready');
                     }
                 };
                 
@@ -413,6 +459,9 @@
                 isPageRestored = false;
             }, 1000);
         }
+        
+        // Reset initialization flag
+        isInitializing = false;
     }
   
     /**
