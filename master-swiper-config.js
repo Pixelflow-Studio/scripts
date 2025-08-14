@@ -180,6 +180,9 @@
         domCache.clear();
     };
     
+    // Track if page is being restored from cache
+    let isPageRestored = false;
+    
     function setupSwipers() {
         // Check if Swiper is available
         if (typeof Swiper === 'undefined') {
@@ -195,14 +198,19 @@
             document.body.classList.add('swiper-low-end-device');
         }
         
+        // If page is restored from cache, add special class for smooth transitions
+        if (isPageRestored) {
+            document.body.classList.add('swiper-restored');
+        }
+        
         // Ensure slides are visible when page is restored from cache
         const allSwipers = document.querySelectorAll('.swiper');
         allSwipers.forEach(swiperEl => {
             const wrapperEl = swiperEl.querySelector('.swiper-wrapper');
             if (wrapperEl) {
-                // Force slides to be visible
+                // Force slides to be visible with smooth transition
                 wrapperEl.style.opacity = '1';
-                wrapperEl.style.transition = 'opacity 0.3s ease';
+                wrapperEl.style.transition = isPageRestored ? 'opacity 0.5s ease-in-out' : 'opacity 0.3s ease';
             }
         });
   
@@ -227,6 +235,27 @@
                 }
                 .swiper-low-end-device .swiper-slide {
                     will-change: auto;
+                }
+                
+                /* Smooth transitions for restored pages */
+                .swiper-restored .swiper-wrapper {
+                    transition: opacity 0.5s ease-in-out !important;
+                }
+                
+                /* Prevent flash during page transitions */
+                .swiper {
+                    min-height: 200px;
+                    transition: opacity 0.3s ease;
+                }
+                
+                /* Smooth loading state */
+                .swiper-loading {
+                    opacity: 0.7;
+                    transition: opacity 0.3s ease;
+                }
+                
+                .swiper-loaded {
+                    opacity: 1;
                 }
             `;
             document.head.appendChild(style);
@@ -376,6 +405,14 @@
                 swiperEl._swiperObserver = observer;
             });
         });
+        
+        // Remove restored class after initialization
+        if (isPageRestored) {
+            setTimeout(() => {
+                document.body.classList.remove('swiper-restored');
+                isPageRestored = false;
+            }, 1000);
+        }
     }
   
     /**
@@ -461,6 +498,10 @@
     window.addEventListener('pageshow', (event) => {
         if (event.persisted) {
             console.log('Page was restored from bfcache, reinitializing all Swipers.');
+            
+            // Set flag for restored page
+            isPageRestored = true;
+            
             // Clear cache and re-run setup to ensure proper initialization
             swiperCache.clear();
             clearDomCache();
@@ -639,6 +680,9 @@
     window.addEventListener('pageshow', (event) => {
         if (event.persisted || isBackButtonPressed) {
             console.log('Page was restored from bfcache or back button pressed, optimizing Swiper transitions.');
+            
+            // Set flag for restored page
+            isPageRestored = true;
             
             // Temporarily disable all transitions
             const allWrappers = document.querySelectorAll('.swiper-wrapper');
