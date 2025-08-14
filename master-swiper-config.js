@@ -42,8 +42,84 @@
     };
     
     // Simplified easing for low-end devices
-    const getOptimizedEasing = () => {
-        return isLowEndDevice() ? 'ease-out' : 'cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    const getOptimizedEasing = (swiperEl) => {
+        if (isLowEndDevice()) {
+            return 'ease-out';
+        }
+        
+        // Check for custom easing attribute on the swiper container
+        const customEasing = swiperEl.getAttribute('data-swiper-easing');
+        if (customEasing) {
+            return customEasing;
+        }
+        
+        // Check for easing type attribute
+        const easingType = swiperEl.getAttribute('data-swiper-easing-type');
+        if (easingType) {
+            switch (easingType) {
+                case 'fast':
+                    return 'cubic-bezier(0.25, 0.1, 0.25, 1)';
+                case 'smooth':
+                    return 'cubic-bezier(0.4, 0, 0.2, 1)';
+                case 'bouncy':
+                    return 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+                case 'ease-out':
+                    return 'ease-out';
+                case 'ease-in-out':
+                    return 'ease-in-out';
+                case 'linear':
+                    return 'linear';
+                default:
+                    return 'cubic-bezier(0.4, 0, 0.2, 1)'; // Material Design default
+            }
+        }
+        
+        // Fallback to default easing based on swiper type
+        const swiperType = getSwiperType(swiperEl);
+        
+        switch (swiperType) {
+            case 'product-cards':
+                // Fast & responsive for product browsing
+                return 'cubic-bezier(0.25, 0.1, 0.25, 1)';
+            case 'premium':
+                // Smooth & premium feel
+                return 'cubic-bezier(0.4, 0, 0.2, 1)';
+            case 'natural':
+                // Bouncy & friendly
+                return 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+            default:
+                // Material Design standard
+                return 'cubic-bezier(0.4, 0, 0.2, 1)';
+        }
+    };
+    
+    // Determine swiper type based on selector
+    const getSwiperType = (swiperEl) => {
+        // Check if swiper has a type attribute
+        const swiperType = swiperEl.getAttribute('data-swiper-type');
+        if (swiperType) {
+            return swiperType;
+        }
+        
+        // Check parent container for swiper type
+        const parentContainer = swiperEl.closest('[data-swiper]');
+        if (parentContainer) {
+            const containerType = parentContainer.getAttribute('data-swiper');
+            switch (containerType) {
+                case 'best-sellers':
+                case 'category':
+                    return 'product-cards';
+                case 'offers':
+                    return 'premium';
+                case 'tanning':
+                    return 'natural';
+                default:
+                    return 'product-cards';
+            }
+        }
+        
+        // Default to product cards for e-commerce
+        return 'product-cards';
     };
     
     // Optimized animation speed for low-end devices
@@ -62,7 +138,7 @@
                  spaceBetween: 20,
                  loop: false,
                  speed: getOptimizedSpeed(),
-                 easing: getOptimizedEasing(),
+                 easing: 'cubic-bezier(0.4, 0, 0.2, 1)', // Will be overridden dynamically
                  navigation: {
                      nextEl: '[data-swiper="category"] .swiper-next',
                      prevEl: '[data-swiper="category"] .swiper-prev',
@@ -87,7 +163,7 @@
                  spaceBetween: 20,
                  loop: false,
                  speed: getOptimizedSpeed(),
-                 easing: getOptimizedEasing(),
+                 easing: 'cubic-bezier(0.4, 0, 0.2, 1)', // Will be overridden dynamically
                  navigation: {
                      nextEl: '[data-swiper="best-sellers"] .swiper-next',
                      prevEl: '[data-swiper="best-sellers"] .swiper-prev',
@@ -112,7 +188,7 @@
                  spaceBetween: 20,
                  loop: false,
                  speed: getOptimizedSpeed(),
-                 easing: getOptimizedEasing(),
+                 easing: 'cubic-bezier(0.4, 0, 0.2, 1)', // Will be overridden dynamically
                  navigation: {
                      nextEl: '[data-swiper="tanning"] .swiper-next',
                      prevEl: '[data-swiper="tanning"] .swiper-prev',
@@ -137,7 +213,7 @@
                  spaceBetween: 20,
                  loop: false,
                  speed: getOptimizedSpeed(),
-                 easing: getOptimizedEasing(),
+                 easing: 'cubic-bezier(0.4, 0, 0.2, 1)', // Will be overridden dynamically
                  navigation: {
                      nextEl: '[data-swiper="offers"] .swiper-next',
                      prevEl: '[data-swiper="offers"] .swiper-prev',
@@ -370,12 +446,12 @@
                                     console.log(`Swiper not initialized for ${config.selector} - only ${slideCount} slides (4 or fewer) on desktop`);
                                                                 } else {
                                     // Mobile OR more than 4 slides: Initialize swiper normally
-                                    const swiper = new Swiper(swiperEl, config.options);
-                                    
-                                    // Ensure easing is properly applied after initialization
-                                    if (swiper.params && swiper.params.easing) {
-                                        swiper.params.easing = config.options.easing;
-                                    }
+                                                    const swiper = new Swiper(swiperEl, config.options);
+                
+                // Ensure easing is properly applied after initialization
+                if (swiper.params && swiper.params.easing) {
+                    swiper.params.easing = getOptimizedEasing(swiperEl);
+                }
                                     
                                     // Force update to ensure easing is applied
                                     swiper.update();
