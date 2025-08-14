@@ -527,35 +527,105 @@ function renderPreciseStars(starContainer, rating) {
         return;
     }
     
-    // Precise rating system
+    // Precise rating system with true partial stars
     starSvgPaths.forEach((path, index) => {
         const starIndex = index + 1; // 1-based index for stars
+        const svgElement = path.closest('svg');
         
         if (rating >= starIndex) {
             // Full star
             path.setAttribute('fill', CONFIG.STYLING.STARS.FILLED_COLOR);
+            // Remove any existing gradient
+            if (svgElement) {
+                svgElement.removeAttribute('style');
+            }
         } else if (rating >= starIndex - 1) {
             // Partial star - calculate fill percentage
             const fillPercentage = rating - (starIndex - 1);
             
-            // For more realistic partial stars, use configurable thresholds
             if (fillPercentage >= CONFIG.STYLING.STARS.PRECISE_RATING.FULL_STAR_THRESHOLD) {
+                // Show as full star
                 path.setAttribute('fill', CONFIG.STYLING.STARS.FILLED_COLOR);
+                if (svgElement) {
+                    svgElement.removeAttribute('style');
+                }
             } else if (fillPercentage >= CONFIG.STYLING.STARS.PRECISE_RATING.HALF_STAR_THRESHOLD) {
-                const lighterColor = getLighterColor(CONFIG.STYLING.STARS.FILLED_COLOR, CONFIG.STYLING.STARS.PRECISE_RATING.HALF_STAR_LIGHTNESS);
-                path.setAttribute('fill', lighterColor);
+                // Create true partial star with gradient
+                createPartialStar(svgElement, path, fillPercentage);
             } else {
+                // Empty star
                 path.setAttribute('fill', CONFIG.STYLING.STARS.EMPTY_COLOR);
+                if (svgElement) {
+                    svgElement.removeAttribute('style');
+                }
             }
         } else {
             // Empty star
             path.setAttribute('fill', CONFIG.STYLING.STARS.EMPTY_COLOR);
+            if (svgElement) {
+                svgElement.removeAttribute('style');
+            }
         }
         
         // Apply stroke to all stars
         path.setAttribute('stroke', CONFIG.STYLING.STARS.STROKE_COLOR);
         path.setAttribute('stroke-width', CONFIG.STYLING.STARS.STROKE_WIDTH);
     });
+}
+
+/**
+ * Creates a true partial star using CSS gradient
+ * @param {Element} svgElement - The SVG element containing the star
+ * @param {Element} pathElement - The path element of the star
+ * @param {number} fillPercentage - The percentage to fill (0-1)
+ */
+function createPartialStar(svgElement, pathElement, fillPercentage) {
+    if (!svgElement || !pathElement) return;
+    
+    // Set the path to use the filled color
+    pathElement.setAttribute('fill', CONFIG.STYLING.STARS.FILLED_COLOR);
+    
+    // Create a gradient that shows the filled color for the percentage and empty color for the rest
+    const gradientId = `star-gradient-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Create the gradient definition
+    const defs = svgElement.querySelector('defs') || document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    if (!svgElement.querySelector('defs')) {
+        svgElement.insertBefore(defs, svgElement.firstChild);
+    }
+    
+    // Remove any existing gradients
+    const existingGradients = defs.querySelectorAll('linearGradient');
+    existingGradients.forEach(grad => grad.remove());
+    
+    // Create new gradient
+    const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+    gradient.setAttribute('id', gradientId);
+    gradient.setAttribute('x1', '0%');
+    gradient.setAttribute('y1', '0%');
+    gradient.setAttribute('x2', '100%');
+    gradient.setAttribute('y2', '0%');
+    
+    // Add gradient stops
+    const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    stop1.setAttribute('offset', `${fillPercentage * 100}%`);
+    stop1.setAttribute('stop-color', CONFIG.STYLING.STARS.FILLED_COLOR);
+    
+    const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    stop2.setAttribute('offset', `${fillPercentage * 100}%`);
+    stop2.setAttribute('stop-color', CONFIG.STYLING.STARS.EMPTY_COLOR);
+    
+    const stop3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    stop3.setAttribute('offset', '100%');
+    stop3.setAttribute('stop-color', CONFIG.STYLING.STARS.EMPTY_COLOR);
+    
+    gradient.appendChild(stop1);
+    gradient.appendChild(stop2);
+    gradient.appendChild(stop3);
+    defs.appendChild(gradient);
+    
+    // Apply the gradient to the path
+    pathElement.setAttribute('fill', `url(#${gradientId})`);
 }
 
 /**
