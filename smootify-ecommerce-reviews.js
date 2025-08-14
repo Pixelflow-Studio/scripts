@@ -68,7 +68,7 @@ const CONFIG = {
    YEAR: 31536000
  },
  SELECTORS: {
-   PRODUCT_CARDS: 'smootify-product[data-id], .sm-product[data-id]',
+   PRODUCT_CARDS: 'smootify-product[data-id]',
    RATING_COMPONENT: '[review="productCard_rating"]',
    STAR_RATING: '[review="productCard_starRating"]',
    REVIEW_TOTAL: '[review="productCard_reviewTotal"]',
@@ -82,11 +82,11 @@ const CONFIG = {
  STYLING: {
    STARS: {
      FILLED_COLOR: 'gold',           // Color for filled stars
-     EMPTY_COLOR: '#f0f0f0',            // Color for empty stars (or 'transparent')
-     STROKE_COLOR: '#666666',          // Border color for stars
-     STROKE_WIDTH: '1px',            // Border width for stars
-     SIZE: '16px',                   // Size of stars
-     SPACING: '0px',                  // Space between stars
+     EMPTY_COLOR: 'transparent',            // Color for empty stars (or 'transparent')
+     STROKE_COLOR: '#c8c8c8',          // Border color for stars (medium gray for subtle visibility)
+     STROKE_WIDTH: '0.0625rem',       // Border width for stars (1px = 0.0625rem)
+     SIZE: '1rem',                   // Size of stars (16px = 1rem)
+     SPACING: '0rem',                 // Space between stars
      PRECISE_RATING: {
        ENABLED: true,                // Enable precise decimal ratings
        FULL_STAR_THRESHOLD: 0.9,     // Show as full star if >= 90% filled
@@ -433,19 +433,26 @@ function applyCustomStyles() {
      transition: fill 0.2s ease-in-out;
    }
    
+   /* Ensure stroke is visible on all star paths */
+   [review="productCard_starRating"] svg path,
+   [review="Product_starRating"] svg path,
+   [reviewcard="starRating"] svg path,
+   [reviewui="starRating"] svg path {
+     stroke: ${CONFIG.STYLING.STARS.STROKE_COLOR} !important;
+     stroke-width: ${CONFIG.STYLING.STARS.STROKE_WIDTH} !important;
+     stroke-linejoin: round !important;
+     stroke-linecap: round !important;
+     vector-effect: non-scaling-stroke !important;
+     paint-order: stroke fill !important;
+   }
+   
    [review="productCard_starRating"] svg + svg,
    [review="Product_starRating"] svg + svg,
    [reviewcard="starRating"] svg + svg {
      margin-left: ${CONFIG.STYLING.STARS.SPACING};
    }
    
-   /* Enhanced star hover effects */
-   [review="productCard_starRating"]:hover svg,
-   [review="Product_starRating"]:hover svg,
-   [reviewcard="starRating"]:hover svg {
-     transform: scale(1.05);
-     transition: transform 0.1s ease-in-out;
-   }
+
    
    /* Custom colors for UI elements */
    .review_ui-header {
