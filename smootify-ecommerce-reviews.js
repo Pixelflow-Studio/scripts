@@ -12,9 +12,9 @@
 // 
 // Configuration options in CONFIG.STYLING.STARS.PRECISE_RATING:
 // - ENABLED: true/false - Enable precise decimal ratings
-// - FULL_STAR_THRESHOLD: 0.75 - Show as full star if >= 75% filled
-// - HALF_STAR_THRESHOLD: 0.25 - Show as half star if >= 25% filled  
-// - HALF_STAR_LIGHTNESS: 0.4 - How much lighter to make half stars
+// - FULL_STAR_THRESHOLD: 0.9 - Show as full star if >= 90% filled
+// - HALF_STAR_THRESHOLD: 0.1 - Show as half star if >= 10% filled  
+// - HALF_STAR_LIGHTNESS: 0.6 - How much lighter to make half stars
 // - USE_SIMPLE_ROUNDING: false - Set to true for old Math.round() behavior
 // =================================================================================
 
@@ -89,9 +89,9 @@ const CONFIG = {
      SPACING: '0px',                  // Space between stars
      PRECISE_RATING: {
        ENABLED: true,                // Enable precise decimal ratings
-       FULL_STAR_THRESHOLD: 0.75,    // Show as full star if >= 75% filled
-       HALF_STAR_THRESHOLD: 0.25,    // Show as half star if >= 25% filled
-       HALF_STAR_LIGHTNESS: 0.4,     // How much lighter to make half stars
+       FULL_STAR_THRESHOLD: 0.9,     // Show as full star if >= 90% filled
+       HALF_STAR_THRESHOLD: 0.1,     // Show as half star if >= 10% filled
+       HALF_STAR_LIGHTNESS: 0.6,     // How much lighter to make half stars
        USE_SIMPLE_ROUNDING: false    // Set to true to use old Math.round() behavior
      }
    },
@@ -492,6 +492,28 @@ function renderPreciseStars(starContainer, rating) {
     // Debug logging for development
     if (rating && rating % 1 !== 0) {
         console.log(`Smootify reviews: Rendering precise stars for rating ${rating.toFixed(2)}`);
+        console.log(`Smootify reviews: Full star threshold: ${CONFIG.STYLING.STARS.PRECISE_RATING.FULL_STAR_THRESHOLD}`);
+        console.log(`Smootify reviews: Half star threshold: ${CONFIG.STYLING.STARS.PRECISE_RATING.HALF_STAR_THRESHOLD}`);
+        
+        // Show expected star pattern
+        let starPattern = '';
+        for (let i = 1; i <= 5; i++) {
+            if (rating >= i) {
+                starPattern += '★'; // Full star
+            } else if (rating >= i - 1) {
+                const fillPercentage = rating - (i - 1);
+                if (fillPercentage >= CONFIG.STYLING.STARS.PRECISE_RATING.FULL_STAR_THRESHOLD) {
+                    starPattern += '★'; // Full star
+                } else if (fillPercentage >= CONFIG.STYLING.STARS.PRECISE_RATING.HALF_STAR_THRESHOLD) {
+                    starPattern += '☆'; // Half star
+                } else {
+                    starPattern += '○'; // Empty star
+                }
+            } else {
+                starPattern += '○'; // Empty star
+            }
+        }
+        console.log(`Smootify reviews: Expected pattern: ${starPattern}`);
     }
     
     // Check if simple rounding is enabled
@@ -545,7 +567,9 @@ function renderPreciseStars(starContainer, rating) {
 function getLighterColor(color, lightness = 0.3) {
     // Handle named colors
     if (color === 'gold') {
-        return '#FFD700'; // Lighter gold
+        // For gold, use a more distinct lighter color that's clearly different
+        // This creates a more obvious visual difference for partial stars
+        return '#FFE5B4'; // Light peach-gold color
     }
     
     // Handle hex colors
