@@ -1,6 +1,21 @@
 
+
 // =================================================================================
-// Smootify Review System
+// Smootify Review System - Enhanced Star Rating
+// =================================================================================
+// 
+// NEW FEATURE: Realistic Star Rating Display
+// - Products with ratings like 2.67 now show 2 full stars + 67% of the 3rd star
+// - Configurable thresholds for full/half star display
+// - Smooth transitions and hover effects
+// - Fallback option to use simple rounding if preferred
+// 
+// Configuration options in CONFIG.STYLING.STARS.PRECISE_RATING:
+// - ENABLED: true/false - Enable precise decimal ratings
+// - FULL_STAR_THRESHOLD: 0.75 - Show as full star if >= 75% filled
+// - HALF_STAR_THRESHOLD: 0.25 - Show as half star if >= 25% filled  
+// - HALF_STAR_LIGHTNESS: 0.4 - How much lighter to make half stars
+// - USE_SIMPLE_ROUNDING: false - Set to true for old Math.round() behavior
 // =================================================================================
 
 // Wrap everything in an IIFE to avoid global scope pollution
@@ -71,7 +86,14 @@ const CONFIG = {
      STROKE_COLOR: '#666666',          // Border color for stars
      STROKE_WIDTH: '1px',            // Border width for stars
      SIZE: '16px',                   // Size of stars
-     SPACING: '0px'                  // Space between stars
+     SPACING: '0px',                  // Space between stars
+     PRECISE_RATING: {
+       ENABLED: true,                // Enable precise decimal ratings
+       FULL_STAR_THRESHOLD: 0.75,    // Show as full star if >= 75% filled
+       HALF_STAR_THRESHOLD: 0.25,    // Show as half star if >= 25% filled
+       HALF_STAR_LIGHTNESS: 0.4,     // How much lighter to make half stars
+       USE_SIMPLE_ROUNDING: false    // Set to true to use old Math.round() behavior
+     }
    },
    ANIMATIONS: {
      ENABLED: true,                  // Enable/disable animations
@@ -408,12 +430,21 @@ function applyCustomStyles() {
    [reviewcard="starRating"] svg {
      width: ${CONFIG.STYLING.STARS.SIZE};
      height: ${CONFIG.STYLING.STARS.SIZE};
+     transition: fill 0.2s ease-in-out;
    }
    
    [review="productCard_starRating"] svg + svg,
    [review="Product_starRating"] svg + svg,
    [reviewcard="starRating"] svg + svg {
      margin-left: ${CONFIG.STYLING.STARS.SPACING};
+   }
+   
+   /* Enhanced star hover effects */
+   [review="productCard_starRating"]:hover svg,
+   [review="Product_starRating"]:hover svg,
+   [reviewcard="starRating"]:hover svg {
+     transform: scale(1.05);
+     transition: transform 0.1s ease-in-out;
    }
    
    /* Custom colors for UI elements */
@@ -444,6 +475,98 @@ function applyCustomStyles() {
 document.addEventListener('smootify:loaded', applyCustomStyles);
 
 // =================================================================================
+// Precise Star Rating System
+// =================================================================================
+
+/**
+ * Renders stars with precise decimal ratings (e.g., 2.67 shows as 2 full stars + 67% of 3rd star)
+ * @param {Element} starContainer - The container element with star SVGs
+ * @param {number} rating - The precise rating (e.g., 2.67)
+ */
+function renderPreciseStars(starContainer, rating) {
+    if (!starContainer) return;
+    
+    const starSvgPaths = starContainer.querySelectorAll('svg path');
+    if (!starSvgPaths.length) return;
+    
+    // Debug logging for development
+    if (rating && rating % 1 !== 0) {
+        console.log(`Smootify reviews: Rendering precise stars for rating ${rating.toFixed(2)}`);
+    }
+    
+    // Check if simple rounding is enabled
+    if (CONFIG.STYLING.STARS.PRECISE_RATING.USE_SIMPLE_ROUNDING) {
+        const roundedRating = Math.round(rating);
+        starSvgPaths.forEach((path, index) => {
+            path.setAttribute('fill', index < roundedRating ? CONFIG.STYLING.STARS.FILLED_COLOR : CONFIG.STYLING.STARS.EMPTY_COLOR);
+            path.setAttribute('stroke', CONFIG.STYLING.STARS.STROKE_COLOR);
+            path.setAttribute('stroke-width', CONFIG.STYLING.STARS.STROKE_WIDTH);
+        });
+        return;
+    }
+    
+    // Precise rating system
+    starSvgPaths.forEach((path, index) => {
+        const starIndex = index + 1; // 1-based index for stars
+        
+        if (rating >= starIndex) {
+            // Full star
+            path.setAttribute('fill', CONFIG.STYLING.STARS.FILLED_COLOR);
+        } else if (rating >= starIndex - 1) {
+            // Partial star - calculate fill percentage
+            const fillPercentage = rating - (starIndex - 1);
+            
+            // For more realistic partial stars, use configurable thresholds
+            if (fillPercentage >= CONFIG.STYLING.STARS.PRECISE_RATING.FULL_STAR_THRESHOLD) {
+                path.setAttribute('fill', CONFIG.STYLING.STARS.FILLED_COLOR);
+            } else if (fillPercentage >= CONFIG.STYLING.STARS.PRECISE_RATING.HALF_STAR_THRESHOLD) {
+                const lighterColor = getLighterColor(CONFIG.STYLING.STARS.FILLED_COLOR, CONFIG.STYLING.STARS.PRECISE_RATING.HALF_STAR_LIGHTNESS);
+                path.setAttribute('fill', lighterColor);
+            } else {
+                path.setAttribute('fill', CONFIG.STYLING.STARS.EMPTY_COLOR);
+            }
+        } else {
+            // Empty star
+            path.setAttribute('fill', CONFIG.STYLING.STARS.EMPTY_COLOR);
+        }
+        
+        // Apply stroke to all stars
+        path.setAttribute('stroke', CONFIG.STYLING.STARS.STROKE_COLOR);
+        path.setAttribute('stroke-width', CONFIG.STYLING.STARS.STROKE_WIDTH);
+    });
+}
+
+/**
+ * Creates a lighter version of a color for partial star fills
+ * @param {string} color - The original color (hex, rgb, or named color)
+ * @param {number} lightness - How much lighter to make it (0-1)
+ * @returns {string} The lighter color
+ */
+function getLighterColor(color, lightness = 0.3) {
+    // Handle named colors
+    if (color === 'gold') {
+        return '#FFD700'; // Lighter gold
+    }
+    
+    // Handle hex colors
+    if (color.startsWith('#')) {
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        
+        const lighterR = Math.min(255, r + (255 - r) * lightness);
+        const lighterG = Math.min(255, g + (255 - g) * lightness);
+        const lighterB = Math.min(255, b + (255 - b) * lightness);
+        
+        return `rgb(${Math.round(lighterR)}, ${Math.round(lighterG)}, ${Math.round(lighterB)})`;
+    }
+    
+    // Default fallback
+    return color;
+}
+
+// =================================================================================
 // Logic for Product Card Ratings
 // =================================================================================
 
@@ -459,7 +582,7 @@ function populateProductCardRatings() {
      const totalReviews = reviews.length;
      let averageRating = 0;
      if (totalReviews > 0) {
-         averageRating = Math.round(reviews.reduce((acc, r) => acc + r.Review_Rating, 0) / totalReviews);
+         averageRating = reviews.reduce((acc, r) => acc + r.Review_Rating, 0) / totalReviews;
      }
 
      const starContainer = ratingComponent.querySelector(CONFIG.SELECTORS.STAR_RATING);
@@ -467,14 +590,9 @@ function populateProductCardRatings() {
 
      if (totalElement) totalElement.textContent = totalReviews;
      
-            if (starContainer) {
-          const starSvgPaths = starContainer.querySelectorAll('svg path');
-          starSvgPaths.forEach((path, index) => {
-              path.setAttribute('fill', index < averageRating ? CONFIG.STYLING.STARS.FILLED_COLOR : CONFIG.STYLING.STARS.EMPTY_COLOR);
-              path.setAttribute('stroke', CONFIG.STYLING.STARS.STROKE_COLOR);
-              path.setAttribute('stroke-width', CONFIG.STYLING.STARS.STROKE_WIDTH);
-          });
-      }
+     if (starContainer) {
+         renderPreciseStars(starContainer, averageRating);
+     }
      
      ratingComponent.style.display = 'flex';
  });
@@ -602,14 +720,9 @@ function updateAggregateRatingDisplay(reviews) {
 
  const totalReviews = reviews.length;
  let averageRating = 0;
- if (totalReviews > 0) averageRating = Math.round(reviews.reduce((acc, r) => acc + r.Review_Rating, 0) / totalReviews);
+ if (totalReviews > 0) averageRating = reviews.reduce((acc, r) => acc + r.Review_Rating, 0) / totalReviews;
  totalReviewsElement.textContent = totalReviews;
- const starSvgPaths = starContainer.querySelectorAll('svg path');
- starSvgPaths.forEach((path, index) => {
-     path.setAttribute('fill', index < averageRating ? CONFIG.STYLING.STARS.FILLED_COLOR : CONFIG.STYLING.STARS.EMPTY_COLOR);
-     path.setAttribute('stroke', CONFIG.STYLING.STARS.STROKE_COLOR);
-     path.setAttribute('stroke-width', CONFIG.STYLING.STARS.STROKE_WIDTH);
- });
+ renderPreciseStars(starContainer, averageRating);
 }
 
 function renderAverageRatingHeader(reviews) {
@@ -623,13 +736,7 @@ function renderAverageRatingHeader(reviews) {
  if (totalReviews > 0) preciseAverage = reviews.reduce((acc, r) => acc + r.Review_Rating, 0) / totalReviews;
  averageRatingEl.textContent = preciseAverage.toFixed(2);
  totalRatingsEl.textContent = totalReviews;
- const roundedAverage = Math.round(preciseAverage);
- const starSvgPaths = starRatingEl.querySelectorAll('svg path');
- starSvgPaths.forEach((path, index) => {
-     path.setAttribute('fill', index < roundedAverage ? CONFIG.STYLING.STARS.FILLED_COLOR : CONFIG.STYLING.STARS.EMPTY_COLOR);
-     path.setAttribute('stroke', CONFIG.STYLING.STARS.STROKE_COLOR);
-     path.setAttribute('stroke-width', CONFIG.STYLING.STARS.STROKE_WIDTH);
- });
+ renderPreciseStars(starRatingEl, preciseAverage);
  reviewUiHeaderEl.style.opacity = '1';
 }
 
@@ -663,18 +770,14 @@ function renderReviews(reviews) {
      if (contentEl) contentEl.textContent = review.Review_Review;
      if (timestampEl) timestampEl.textContent = formatTimeAgo(review.Review_DateTime);
      if (starsContainerEl) {
-         const starPaths = starsContainerEl.querySelectorAll('svg path');
          const rating = review.Review_Rating;
          
          // Add accessibility for star rating
          starsContainerEl.setAttribute('role', 'img');
          starsContainerEl.setAttribute('aria-label', `${rating} out of 5 stars`);
          
-                    starPaths.forEach((path, index) => {
-              path.setAttribute('fill', index < rating ? CONFIG.STYLING.STARS.FILLED_COLOR : CONFIG.STYLING.STARS.EMPTY_COLOR);
-              path.setAttribute('stroke', CONFIG.STYLING.STARS.STROKE_COLOR);
-              path.setAttribute('stroke-width', CONFIG.STYLING.STARS.STROKE_WIDTH);
-          });
+         // Use precise star rendering for individual reviews
+         renderPreciseStars(starsContainerEl, rating);
      }
      cardClone.style.visibility = 'hidden';
      container.appendChild(cardClone);
