@@ -3,6 +3,12 @@
 // ===================================================================
 
 (function() {
+  // BASIC DEBUGGING FOR JSDELIVR
+  console.log('=== SWIPER SCRIPT LOADED ===');
+  console.log('Script execution started');
+  console.log('DOM ready state:', document.readyState);
+  console.log('Swiper library available:', typeof Swiper !== 'undefined');
+  
   // PERFORMANCE OPTIMIZATION UTILITIES
   // -------------------------------------------------------------------
   
@@ -617,6 +623,8 @@
   let isInitializing = false;
   
   function setupSwipers() {
+      console.log('=== SETUP SWIPERS CALLED ===');
+      
       // Check if Swiper is available
       if (typeof Swiper === 'undefined') {
           console.warn('Swiper library not loaded. Skipping initialization.');
@@ -1034,6 +1042,8 @@
   const maxAttempts = 5;
   
   function attemptInitialization() {
+      console.log('=== ATTEMPT INITIALIZATION CALLED ===');
+      
       if (initAttempts >= maxAttempts) {
           console.warn('Max initialization attempts reached for Swiper');
           return;
@@ -1049,6 +1059,7 @@
           return;
       }
       
+      console.log('Swiper library found, calling setupSwipers...');
       setupSwipers();
   }
   
@@ -1058,8 +1069,14 @@
   // IMMEDIATE HERO SLIDER VISIBILITY FIX FOR JSDELIVR
   // Force hero sliders to be visible immediately when script loads
   function forceHeroSliderVisibility() {
+      console.log('=== FORCE HERO SLIDER VISIBILITY CALLED ===');
+      
       const heroSliders = document.querySelectorAll('.hero-slider .swiper.is-hero-slider');
-      heroSliders.forEach(slider => {
+      console.log('Found hero sliders:', heroSliders.length);
+      
+      heroSliders.forEach((slider, index) => {
+          console.log(`Processing hero slider ${index + 1}`);
+          
           // Force visibility with inline styles
           slider.style.opacity = '1';
           slider.style.visibility = 'visible';
@@ -1070,16 +1087,18 @@
               wrapper.style.opacity = '1';
               wrapper.style.visibility = 'visible';
               wrapper.style.display = 'block';
+              console.log(`Applied styles to wrapper for slider ${index + 1}`);
           }
           
           const slides = slider.querySelectorAll('.swiper-slide');
-          slides.forEach(slide => {
+          console.log(`Found ${slides.length} slides in slider ${index + 1}`);
+          slides.forEach((slide, slideIndex) => {
               slide.style.opacity = '1';
               slide.style.visibility = 'visible';
               slide.style.display = 'block';
           });
           
-          console.log('Forced hero slider visibility');
+          console.log(`Forced hero slider ${index + 1} visibility`);
       });
   }
   
