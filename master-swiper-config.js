@@ -9,6 +9,51 @@
   console.log('DOM ready state:', document.readyState);
   console.log('Swiper library available:', typeof Swiper !== 'undefined');
   
+  // IMMEDIATE HERO SLIDER FIX - Run this first before anything else
+  (function() {
+      console.log('=== IMMEDIATE HERO SLIDER FIX ===');
+      const heroSliders = document.querySelectorAll('.hero-slider');
+      console.log('Found hero slider containers:', heroSliders.length);
+      
+      heroSliders.forEach((container, index) => {
+          console.log(`Processing hero slider container ${index + 1}`);
+          
+          // Force visibility on the container
+          container.style.opacity = '1';
+          container.style.visibility = 'visible';
+          container.style.display = 'block';
+          
+          // Find all swiper elements within this container
+          const swipers = container.querySelectorAll('.swiper');
+          console.log(`Found ${swipers.length} swiper elements in container ${index + 1}`);
+          
+          swipers.forEach((swiper, swiperIndex) => {
+              console.log(`Processing swiper ${swiperIndex + 1} in container ${index + 1}`);
+              swiper.style.opacity = '1';
+              swiper.style.visibility = 'visible';
+              swiper.style.display = 'block';
+              
+              // Find wrapper
+              const wrapper = swiper.querySelector('.swiper-wrapper');
+              if (wrapper) {
+                  wrapper.style.opacity = '1';
+                  wrapper.style.visibility = 'visible';
+                  wrapper.style.display = 'block';
+                  console.log(`Applied styles to wrapper ${swiperIndex + 1}`);
+              }
+              
+              // Find slides
+              const slides = swiper.querySelectorAll('.swiper-slide');
+              console.log(`Found ${slides.length} slides in swiper ${swiperIndex + 1}`);
+              slides.forEach((slide, slideIndex) => {
+                  slide.style.opacity = '1';
+                  slide.style.visibility = 'visible';
+                  slide.style.display = 'block';
+              });
+          });
+      });
+  })();
+  
   // PERFORMANCE OPTIMIZATION UTILITIES
   // -------------------------------------------------------------------
   
@@ -686,20 +731,26 @@
               }
               
               /* Exception for hero slider - always visible */
-              .swiper-js-loaded .swiper.is-hero-slider .swiper-wrapper {
+              .swiper-js-loaded .swiper.is-hero-slider .swiper-wrapper,
+              .swiper-js-loaded .swiper.is-hero-slider .swiper-wrapper.is-hero-slider {
                   opacity: 1 !important;
               }
               
               /* HERO SLIDER SPECIFIC STYLES - Always visible */
-              .hero-slider .swiper.is-hero-slider {
+              .hero-slider .swiper.is-hero-slider,
+              .hero-slider .swiper {
                   opacity: 1 !important;
                   visibility: visible !important;
               }
-              .hero-slider .swiper.is-hero-slider .swiper-wrapper {
+              .hero-slider .swiper.is-hero-slider .swiper-wrapper,
+              .hero-slider .swiper .swiper-wrapper,
+              .hero-slider .swiper.is-hero-slider .swiper-wrapper.is-hero-slider {
                   opacity: 1 !important;
                   visibility: visible !important;
               }
-              .hero-slider .swiper.is-hero-slider .swiper-slide {
+              .hero-slider .swiper.is-hero-slider .swiper-slide,
+              .hero-slider .swiper .swiper-slide,
+              .hero-slider .swiper.is-hero-slider .swiper-slide.is-hero-slider {
                   opacity: 1 !important;
                   visibility: visible !important;
               }
@@ -1071,7 +1122,8 @@
   function forceHeroSliderVisibility() {
       console.log('=== FORCE HERO SLIDER VISIBILITY CALLED ===');
       
-      const heroSliders = document.querySelectorAll('.hero-slider .swiper.is-hero-slider');
+      // Try multiple selectors to match your HTML structure
+      const heroSliders = document.querySelectorAll('.hero-slider .swiper.is-hero-slider, .hero-slider .swiper');
       console.log('Found hero sliders:', heroSliders.length);
       
       heroSliders.forEach((slider, index) => {
@@ -1082,7 +1134,8 @@
           slider.style.visibility = 'visible';
           slider.style.display = 'block';
           
-          const wrapper = slider.querySelector('.swiper-wrapper');
+          // Try multiple wrapper selectors
+          const wrapper = slider.querySelector('.swiper-wrapper.is-hero-slider, .swiper-wrapper');
           if (wrapper) {
               wrapper.style.opacity = '1';
               wrapper.style.visibility = 'visible';
@@ -1090,7 +1143,8 @@
               console.log(`Applied styles to wrapper for slider ${index + 1}`);
           }
           
-          const slides = slider.querySelectorAll('.swiper-slide');
+          // Try multiple slide selectors
+          const slides = slider.querySelectorAll('.swiper-slide.is-hero-slider, .swiper-slide');
           console.log(`Found ${slides.length} slides in slider ${index + 1}`);
           slides.forEach((slide, slideIndex) => {
               slide.style.opacity = '1';
