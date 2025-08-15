@@ -85,7 +85,7 @@ const CONFIG = {
      EMPTY_COLOR: 'transparent',            // Color for empty stars (or 'transparent')
      STROKE_COLOR: '#c8c8c8',          // Border color for stars (medium gray for subtle visibility)
      STROKE_WIDTH: '0.0625rem',       // Border width for stars (1px = 0.0625rem)
-     SIZE: '1rem',                   // Size of stars (16px = 1rem)
+     SIZE: '0.875rem',                   // Size of stars (16px = 1rem)
      SPACING: '0rem',                 // Space between stars
      PRECISE_RATING: {
        ENABLED: true,                // Enable precise decimal ratings
