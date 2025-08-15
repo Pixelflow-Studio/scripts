@@ -395,7 +395,7 @@
                                       swiperEl.classList.add('swiper-ready');
                                   }
                                   
-                                  console.log(`Swiper not initialized for ${config.selector} - only ${slideCount} slides (4 or fewer) on desktop`);
+
                                                               } else {
                                   // Mobile OR more than 4 slides: Initialize swiper normally
                                                   const swiper = new Swiper(swiperEl, config.options);
@@ -431,7 +431,7 @@
                                       swiperEl.classList.add('swiper-ready');
                                   }
                                   
-                                  console.log(`Swiper initialized for: ${config.selector} - ${slideCount} slides`);
+
                               }
                               
                               // Cache the new state
@@ -449,7 +449,7 @@
                           if (isPageRestored) {
                               swiperEl.classList.add('swiper-ready');
                           }
-                          //console.log(`Swiper updated for: ${config.selector}`);
+
                       }
                   } catch (error) {
                       console.error(`Error initializing/updating Swiper for ${config.selector}:`, error);
@@ -525,7 +525,7 @@
                           cachedData.timestamp = Date.now();
                       }
                       
-                      console.log(`Swiper updated and easing restored for: ${config.selector}`);
+
                   } catch (error) {
                       console.error(`Error updating Swiper for ${config.selector}:`, error);
                   }
@@ -578,7 +578,7 @@
   // Handle mobile browser back/forward cache restores.
   window.addEventListener('pageshow', (event) => {
       if (event.persisted) {
-          console.log('Page was restored from bfcache, reinitializing all Swipers.');
+
           
           // Set flag for restored page
           isPageRestored = true;
@@ -615,7 +615,7 @@
                                   element.swiper.updateSlides();
                                   element.swiper.updateProgress();
                                   
-                                  console.log(`Swiper easing restored from bfcache for: ${config.selector}`);
+
                               } catch (error) {
                                   console.error(`Error restoring Swiper from bfcache for ${config.selector}:`, error);
                               }
@@ -656,7 +656,7 @@
                               element.swiper.updateSlides();
                               element.swiper.updateProgress();
                               
-                              console.log(`Swiper easing restored for: ${config.selector}`);
+
                           } catch (error) {
                               console.error(`Error restoring Swiper for ${config.selector}:`, error);
                           }
@@ -739,7 +739,7 @@
                               }
                           }, 50);
                           
-                          console.log(`Swiper easing restored after popstate for: ${config.selector}`);
+
                       } catch (error) {
                           console.error(`Error restoring Swiper after popstate for ${config.selector}:`, error);
                       }
@@ -760,7 +760,7 @@
   // Enhanced pageshow handler for back button
   window.addEventListener('pageshow', (event) => {
       if (event.persisted || isBackButtonPressed) {
-          console.log('Page was restored from bfcache or back button pressed, optimizing Swiper transitions.');
+
           
           // Set flag for restored page
           isPageRestored = true;
@@ -795,7 +795,7 @@
                                   element.swiper.updateSlides();
                                   element.swiper.updateProgress();
                                   
-                                  console.log(`Swiper optimized after back button for: ${config.selector}`);
+
                               } catch (error) {
                                   console.error(`Error optimizing Swiper after back button for ${config.selector}:`, error);
                               }
