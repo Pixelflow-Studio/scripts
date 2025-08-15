@@ -346,7 +346,7 @@
   // Ensure all bullets are rendered and styled correctly on page load
   function initializeHeroBullets() {
     // Force Swiper to render all bullets
-    const heroSlider = document.querySelector('.hero-slider .swiper');
+    const heroSlider = document.querySelector('.hero-slider .swiper.is-hero-slider');
     if (heroSlider && heroSlider.swiper && heroSlider.swiper.pagination) {
       heroSlider.swiper.pagination.render();
       heroSlider.swiper.pagination.update();
@@ -464,7 +464,7 @@
 
        // HERO SLIDER CONFIGURATION
        {
-           selector: '.hero-slider .swiper',
+           selector: '.hero-slider .swiper.is-hero-slider',
            options: {
                slidesPerView: 1,
                centeredSlides: false,
@@ -677,6 +677,20 @@
                   opacity: 1;
               }
               
+              /* HERO SLIDER SPECIFIC STYLES - Always visible */
+              .hero-slider .swiper.is-hero-slider {
+                  opacity: 1 !important;
+                  visibility: visible !important;
+              }
+              .hero-slider .swiper.is-hero-slider .swiper-wrapper {
+                  opacity: 1 !important;
+                  visibility: visible !important;
+              }
+              .hero-slider .swiper.is-hero-slider .swiper-slide {
+                  opacity: 1 !important;
+                  visibility: visible !important;
+              }
+              
               /* Performance optimizations for low-end devices */
               .swiper-low-end-device .swiper-wrapper {
                   will-change: auto;
@@ -728,8 +742,11 @@
           
           // Skip if no elements found for this configuration
           if (swiperElements.length === 0) {
+              console.log(`No elements found for selector: ${config.selector}`);
               return;
           }
+          
+          console.log(`Found ${swiperElements.length} elements for selector: ${config.selector}`);
           
           swiperElements.forEach(swiperEl => {
               const wrapperEl = swiperEl.querySelector('.swiper-wrapper');
@@ -1306,7 +1323,7 @@
   
   // Additional initialization attempt for hero slider after a longer delay
   setTimeout(() => {
-    const heroSlider = document.querySelector('.hero-slider .swiper');
+    const heroSlider = document.querySelector('.hero-slider .swiper.is-hero-slider');
     if (heroSlider && !heroSlider.swiper) {
       console.log('Delayed hero slider initialization attempt');
       // The hero slider will be initialized through the main setupSwipers function
