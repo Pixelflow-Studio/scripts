@@ -8,6 +8,7 @@
   console.log('Script execution started');
   console.log('DOM ready state:', document.readyState);
   console.log('Swiper library available:', typeof Swiper !== 'undefined');
+  console.log('Webflow environment detected:', typeof Webflow !== 'undefined');
   
   // IMMEDIATE HERO SLIDER FIX - Run this first before anything else
   (function() {
@@ -53,6 +54,50 @@
           });
       });
   })();
+  
+  // WEBFLOW SPECIFIC HANDLING
+  // Wait for Webflow to be ready if it exists
+  function waitForWebflow() {
+      if (typeof Webflow !== 'undefined') {
+          console.log('Webflow detected, waiting for ready state...');
+          Webflow.push(() => {
+              console.log('Webflow ready, initializing swipers...');
+              setupSwipers();
+          });
+      } else {
+          console.log('Webflow not detected, proceeding with normal initialization...');
+          setupSwipers();
+      }
+  }
+  
+  // MULTIPLE INITIALIZATION ATTEMPTS FOR WEBFLOW
+  let webflowInitAttempts = 0;
+  const maxWebflowAttempts = 10;
+  
+  function attemptWebflowInitialization() {
+      if (webflowInitAttempts >= maxWebflowAttempts) {
+          console.warn('Max Webflow initialization attempts reached');
+          return;
+      }
+      
+      webflowInitAttempts++;
+      console.log(`Webflow initialization attempt ${webflowInitAttempts}/${maxWebflowAttempts}`);
+      
+      // Check if Webflow is available
+      if (typeof Webflow !== 'undefined') {
+          console.log('Webflow found, waiting for ready state...');
+          Webflow.push(() => {
+              console.log('Webflow ready, initializing swipers...');
+              setupSwipers();
+          });
+      } else {
+          console.log('Webflow not available, retrying...');
+          setTimeout(attemptWebflowInitialization, 200);
+      }
+  }
+  
+  // Start Webflow initialization attempts
+  attemptWebflowInitialization();
   
   // PERFORMANCE OPTIMIZATION UTILITIES
   // -------------------------------------------------------------------
