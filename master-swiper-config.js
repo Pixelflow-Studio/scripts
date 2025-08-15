@@ -696,6 +696,21 @@
                   visibility: visible !important;
               }
               
+              /* AGGRESSIVE OVERRIDE FOR JSDELIVR SCENARIOS */
+              .hero-slider .swiper-wrapper,
+              .hero-slider .swiper-slide,
+              .hero-slider .swiper {
+                  opacity: 1 !important;
+                  visibility: visible !important;
+                  display: block !important;
+              }
+              
+              /* Force hero slider visibility even before JS loads */
+              .hero-slider {
+                  opacity: 1 !important;
+                  visibility: visible !important;
+              }
+              
               /* Performance optimizations for low-end devices */
               .swiper-low-end-device .swiper-wrapper {
                   will-change: auto;
@@ -1003,6 +1018,77 @@
       // Small delay to ensure all content is loaded
       setTimeout(setupSwipers, 100);
   });
+  
+  // Additional safeguard for jsDelivr and external script loading
+  // Check if script is loaded after DOM is ready
+  if (document.readyState === 'loading') {
+      // DOM is still loading, wait for it
+      document.addEventListener('DOMContentLoaded', setupSwipers);
+  } else {
+      // DOM is already ready, run immediately
+      setupSwipers();
+  }
+  
+  // Multiple initialization attempts for jsDelivr scenarios
+  let initAttempts = 0;
+  const maxAttempts = 5;
+  
+  function attemptInitialization() {
+      if (initAttempts >= maxAttempts) {
+          console.warn('Max initialization attempts reached for Swiper');
+          return;
+      }
+      
+      initAttempts++;
+      console.log(`Swiper initialization attempt ${initAttempts}/${maxAttempts}`);
+      
+      // Check if Swiper library is available
+      if (typeof Swiper === 'undefined') {
+          console.log('Swiper library not available, retrying...');
+          setTimeout(attemptInitialization, 500);
+          return;
+      }
+      
+      setupSwipers();
+  }
+  
+  // Start initialization attempts
+  attemptInitialization();
+  
+  // IMMEDIATE HERO SLIDER VISIBILITY FIX FOR JSDELIVR
+  // Force hero sliders to be visible immediately when script loads
+  function forceHeroSliderVisibility() {
+      const heroSliders = document.querySelectorAll('.hero-slider .swiper.is-hero-slider');
+      heroSliders.forEach(slider => {
+          // Force visibility with inline styles
+          slider.style.opacity = '1';
+          slider.style.visibility = 'visible';
+          slider.style.display = 'block';
+          
+          const wrapper = slider.querySelector('.swiper-wrapper');
+          if (wrapper) {
+              wrapper.style.opacity = '1';
+              wrapper.style.visibility = 'visible';
+              wrapper.style.display = 'block';
+          }
+          
+          const slides = slider.querySelectorAll('.swiper-slide');
+          slides.forEach(slide => {
+              slide.style.opacity = '1';
+              slide.style.visibility = 'visible';
+              slide.style.display = 'block';
+          });
+          
+          console.log('Forced hero slider visibility');
+      });
+  }
+  
+  // Run immediately
+  forceHeroSliderVisibility();
+  
+  // Also run after a short delay to catch any late DOM changes
+  setTimeout(forceHeroSliderVisibility, 100);
+  setTimeout(forceHeroSliderVisibility, 500);
 
   // Handle mobile browser back/forward cache restores.
   window.addEventListener('pageshow', (event) => {
