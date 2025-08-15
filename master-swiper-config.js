@@ -773,85 +773,90 @@
                               swiperEl.swiper.destroy(true, true);
                           }
                           
-                          // Check if we should initialize swiper based on slide count
-                          if (slideCount > 0) {
-                              // If 4 or fewer slides, only use flex mode on desktop
-                              const isMobile = window.innerWidth <= 768;
+                                                // Check if we should initialize swiper based on slide count
+                      if (slideCount > 0) {
+                          // Special handling for hero slider - always initialize as Swiper
+                          const isHeroSlider = swiperEl.classList.contains('is-hero-slider');
+                          
+                          // If 4 or fewer slides, only use flex mode on desktop (but not for hero slider)
+                          const isMobile = window.innerWidth <= 768;
+                          
+                          if (slideCount <= 4 && !isMobile && !isHeroSlider) {
+                              // Desktop: Remove swiper classes and show slides normally (for non-hero sliders)
+                              swiperEl.classList.remove('swiper-initialized');
+                              swiperEl.classList.add('swiper-flex-mode');
+                              wrapperEl.style.display = '';
+                              wrapperEl.style.gap = '20px';
                               
-                              if (slideCount <= 4 && !isMobile) {
-                                  // Desktop: Remove swiper classes and show slides normally
-                                  swiperEl.classList.remove('swiper-initialized');
-                                  swiperEl.classList.add('swiper-flex-mode');
-                                  wrapperEl.style.display = '';
-                                  wrapperEl.style.gap = '20px';
-                                  
-                                                                                                          // Preserve original slide styling by removing Swiper's inline styles
-                                    const slides = wrapperEl.querySelectorAll('.swiper-slide');
-                                    slides.forEach(slide => {
-                                        // Calculate width based on slide count
-                                        const slideWidth = slideCount === 3 ? 'calc(33.333% - 15px)' : 'calc(25% - 15px)';
-                                        slide.style.width = slideWidth;
-                                        slide.style.flexShrink = '0';
-                                        slide.style.flexGrow = '0';
-                                        slide.style.flexBasis = 'auto';
-                                    });
-                                  
-                                  // Hide navigation and scrollbar elements
-                                  const navElements = swiperEl.querySelectorAll('.swiper-next, .swiper-prev, .swiper-scrollbar, .slider_arrow');
-                                  navElements.forEach(el => el.style.display = 'none');
-                                  
-                                                                       // Also hide the pagination container if it exists
-                                   const parentContainer = swiperEl.closest('[data-swiper="best-sellers"], [data-swiper="category"], [data-swiper="tanning"], [data-swiper="offers"]');
-                                  if (parentContainer) {
-                                      const paginationContainer = parentContainer.querySelector('.swiper-pagination_elements');
-                                      if (paginationContainer) {
-                                          paginationContainer.style.display = 'none';
-                                      }
+                              // Preserve original slide styling by removing Swiper's inline styles
+                              const slides = wrapperEl.querySelectorAll('.swiper-slide');
+                              slides.forEach(slide => {
+                                  // Calculate width based on slide count
+                                  const slideWidth = slideCount === 3 ? 'calc(33.333% - 15px)' : 'calc(25% - 15px)';
+                                  slide.style.width = slideWidth;
+                                  slide.style.flexShrink = '0';
+                                  slide.style.flexGrow = '0';
+                                  slide.style.flexBasis = 'auto';
+                              });
+                              
+                              // Hide navigation and scrollbar elements
+                              const navElements = swiperEl.querySelectorAll('.swiper-next, .swiper-prev, .swiper-scrollbar, .slider_arrow');
+                              navElements.forEach(el => el.style.display = 'none');
+                              
+                              // Also hide the pagination container if it exists
+                              const parentContainer = swiperEl.closest('[data-swiper="best-sellers"], [data-swiper="category"], [data-swiper="tanning"], [data-swiper="offers"]');
+                              if (parentContainer) {
+                                  const paginationContainer = parentContainer.querySelector('.swiper-pagination_elements');
+                                  if (paginationContainer) {
+                                      paginationContainer.style.display = 'none';
                                   }
-                                  
-                                  // Mark as ready and show (only for restored pages)
-                                  if (isPageRestored) {
-                                      swiperEl.classList.add('swiper-ready');
-                                  }
-                                  
-                                  console.log(`Swiper not initialized for ${config.selector} - only ${slideCount} slides (4 or fewer) on desktop`);
-                                                              } else {
-                                  // Mobile OR more than 4 slides: Initialize swiper normally
-                                                  const swiper = new Swiper(swiperEl, config.options);
+                              }
+                              
+                              // Mark as ready and show (only for restored pages)
+                              if (isPageRestored) {
+                                  swiperEl.classList.add('swiper-ready');
+                              }
+                              
+                              console.log(`Swiper not initialized for ${config.selector} - only ${slideCount} slides (4 or fewer) on desktop`);
+                          } else {
+                              // Mobile OR more than 4 slides OR hero slider: Initialize swiper normally
+                              const swiper = new Swiper(swiperEl, config.options);
               
-              // Ensure easing is properly applied after initialization
-              if (swiper.params && swiper.params.easing) {
-                  swiper.params.easing = getOptimizedEasing(swiperEl);
-              }
+                              // Ensure easing is properly applied after initialization
+                              if (swiper.params && swiper.params.easing) {
+                                  swiper.params.easing = getOptimizedEasing(swiperEl);
+                              }
                                   
-                                  // Force update to ensure easing is applied
-                                  swiper.update();
-                                  swiper.updateSlides();
-                                  swiper.updateProgress();
-                                  
-                                  // Show the slides after initialization
-                                  swiperEl.classList.add('swiper-initialized');
-                                  
-                                  // Show navigation and scrollbar elements
+                              // Force update to ensure easing is applied
+                              swiper.update();
+                              swiper.updateSlides();
+                              swiper.updateProgress();
+                              
+                              // Show the slides after initialization
+                              swiperEl.classList.add('swiper-initialized');
+                              
+                              // Show navigation and scrollbar elements (but not for hero slider)
+                              if (!isHeroSlider) {
                                   const navElements = swiperEl.querySelectorAll('.swiper-next, .swiper-prev, .swiper-scrollbar, .slider_arrow');
                                   navElements.forEach(el => el.style.display = '');
                                   
-                                                                       // Also show the pagination container if it exists
-                                   const parentContainer = swiperEl.closest('[data-swiper="best-sellers"], [data-swiper="category"], [data-swiper="tanning"], [data-swiper="offers"]');
+                                  // Also show the pagination container if it exists
+                                  const parentContainer = swiperEl.closest('[data-swiper="best-sellers"], [data-swiper="category"], [data-swiper="tanning"], [data-swiper="offers"]');
                                   if (parentContainer) {
                                       const paginationContainer = parentContainer.querySelector('.swiper-pagination_elements');
                                       if (paginationContainer) {
                                           paginationContainer.style.display = '';
                                       }
                                   }
-                                  
-                                  // Mark as ready and show (only for restored pages)
-                                  if (isPageRestored) {
-                                      swiperEl.classList.add('swiper-ready');
-                                  }
-                                  
-                                  console.log(`Swiper initialized for: ${config.selector} - ${slideCount} slides`);
                               }
+                              
+                              // Mark as ready and show (only for restored pages)
+                              if (isPageRestored) {
+                                  swiperEl.classList.add('swiper-ready');
+                              }
+                              
+                              console.log(`Swiper initialized for: ${config.selector} - ${slideCount} slides${isHeroSlider ? ' (hero slider)' : ''}`);
+                          }
                               
                               // Cache the new state
                               swiperCache.set(cacheKey, {
