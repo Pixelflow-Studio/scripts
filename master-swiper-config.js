@@ -677,6 +677,11 @@
                   opacity: 1;
               }
               
+              /* Exception for hero slider - always visible */
+              .swiper-js-loaded .swiper.is-hero-slider .swiper-wrapper {
+                  opacity: 1 !important;
+              }
+              
               /* HERO SLIDER SPECIFIC STYLES - Always visible */
               .hero-slider .swiper.is-hero-slider {
                   opacity: 1 !important;
