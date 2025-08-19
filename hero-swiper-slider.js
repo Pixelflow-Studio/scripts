@@ -1,8 +1,77 @@
 /**
  * ==================================================================================
- * HERO SLIDER - SWIPER & GSAP INTEGRATION (OPTIMIZED FOR PERFORMANCE)
+ * HERO SLIDER - SWIPER & GSAP INTEGRATION (PRODUCTION READY)
+ * ==================================================================================
+ * Version: 1.0.0
+ * Dependencies: Swiper.js, GSAP
+ * Browser Support: Modern browsers (ES6+)
  * ==================================================================================
  */
+
+// --- PRODUCTION CONFIGURATION ---
+const HERO_SLIDER_CONFIG = {
+  // Debug mode (set to false for production)
+  debug: false,
+  
+  // Performance settings
+  animationSpeed: 600,
+  autoplayDelay: 5000,
+  
+  // CSS Variables (can be overridden by CSS)
+  cssVariables: {
+    paginationPaddingTop: '1.25rem',
+    paginationPaddingBottom: '1.25rem',
+    inactiveDotSize: '0.625rem',
+    inactiveDotColor: '#e0e0e0',
+    inactiveDotMargin: '0.25rem',
+    activeDotWidth: '3rem',
+    activeDotHeight: '0.625rem',
+    activeDotColor: '#e0e0e0',
+    activeDotBorderRadius: '0.3125rem',
+    progressBarColor: 'var(--base-color-brand--pink)',
+    paginationTransition: 'all 0.3s ease-in-out'
+  },
+  
+  // Breakpoints
+  breakpoints: {
+    mobile: 991,
+    desktop: 992
+  },
+  
+  // Error handling
+  maxRetries: 3,
+  retryDelay: 1000
+};
+
+// --- PRODUCTION LOGGING ---
+const Logger = {
+  log: function(message, data = null) {
+    if (HERO_SLIDER_CONFIG.debug) {
+      console.log(`[Hero Slider] ${message}`, data || '');
+    }
+  },
+  
+  warn: function(message, data = null) {
+    console.warn(`[Hero Slider] ${message}`, data || '');
+  },
+  
+  error: function(message, error = null) {
+    console.error(`[Hero Slider] ${message}`, error || '');
+  }
+};
+
+// --- ERROR BOUNDARY ---
+function withErrorBoundary(fn, context = 'Unknown') {
+  return function(...args) {
+    try {
+      return fn.apply(this, args);
+    } catch (error) {
+      Logger.error(`Error in ${context}:`, error);
+      // Graceful degradation - don't break the entire slider
+      return null;
+    }
+  };
+}
 
 // Add CSS to work with existing pill-shaped progress bar design
 const paginationStyles = `
@@ -11,28 +80,28 @@ const paginationStyles = `
    * ================================================================================== */
   :root {
     /* Pagination Container */
-    --pagination-padding-top: 1.25rem;
-    --pagination-padding-bottom: 1.25rem;
+    --pagination-padding-top: ${HERO_SLIDER_CONFIG.cssVariables.paginationPaddingTop};
+    --pagination-padding-bottom: ${HERO_SLIDER_CONFIG.cssVariables.paginationPaddingBottom};
     
     /* Inactive Dots */
-    --inactive-dot-size: 0.625rem;
-    --inactive-dot-color: #e0e0e0;
-    --inactive-dot-margin: 0.25rem;
+    --inactive-dot-size: ${HERO_SLIDER_CONFIG.cssVariables.inactiveDotSize};
+    --inactive-dot-color: ${HERO_SLIDER_CONFIG.cssVariables.inactiveDotColor};
+    --inactive-dot-margin: ${HERO_SLIDER_CONFIG.cssVariables.inactiveDotMargin};
     
     /* Active Dot (Pill Shape) */
-    --active-dot-width: 3rem;
-    --active-dot-height: 0.625rem;
-    --active-dot-color: #e0e0e0;
-    --active-dot-border-radius: 0.3125rem;
+    --active-dot-width: ${HERO_SLIDER_CONFIG.cssVariables.activeDotWidth};
+    --active-dot-height: ${HERO_SLIDER_CONFIG.cssVariables.activeDotHeight};
+    --active-dot-color: ${HERO_SLIDER_CONFIG.cssVariables.activeDotColor};
+    --active-dot-border-radius: ${HERO_SLIDER_CONFIG.cssVariables.activeDotBorderRadius};
     
     /* Progress Bar (Fills the active dot) */
-    --progress-bar-color: var(--base-color-brand--pink);
+    --progress-bar-color: ${HERO_SLIDER_CONFIG.cssVariables.progressBarColor};
     
     /* Transitions */
-    --pagination-transition: all 0.3s ease-in-out;
+    --pagination-transition: ${HERO_SLIDER_CONFIG.cssVariables.paginationTransition};
   }
 
-  .swiper-pagination {
+  .hero-slider .swiper-pagination {
     padding-top: var(--pagination-padding-top) !important;
     padding-bottom: var(--pagination-padding-bottom) !important;
     position: relative !important;
@@ -41,13 +110,13 @@ const paginationStyles = `
   }
 
   /* Override Swiper's default pagination color */
-  .swiper-pagination-bullet {
+  .hero-slider .swiper-pagination-bullet {
     background: var(--inactive-dot-color) !important;
     opacity: 1 !important;
   }
 
   /* Force ALL inactive dots to be perfect circles */
-  .swiper-pagination-bullet:not(.swiper-pagination-bullet-active) {
+  .hero-slider .swiper-pagination-bullet:not(.swiper-pagination-bullet-active) {
     width: var(--inactive-dot-size) !important;
     height: var(--inactive-dot-size) !important;
     border-radius: 50% !important;
@@ -64,7 +133,7 @@ const paginationStyles = `
   }
 
   /* Force active dot to be pill-shaped */
-  .swiper-pagination-bullet-active {
+  .hero-slider .swiper-pagination-bullet-active {
     width: var(--active-dot-width) !important;
     height: var(--active-dot-height) !important;
     border-radius: var(--active-dot-border-radius) !important;
@@ -83,7 +152,7 @@ const paginationStyles = `
   }
 
   /* The actual progress bar that fills up */
-  .swiper-pagination-bullet-active::before {
+  .hero-slider .swiper-pagination-bullet-active::before {
     content: '';
     position: absolute;
     top: 0;
@@ -95,9 +164,9 @@ const paginationStyles = `
   }
 
   /* Override any Swiper default styles that might cause issues */
-  .swiper-pagination-bullet-active-main,
-  .swiper-pagination-bullet-active-prev,
-  .swiper-pagination-bullet-active-next {
+  .hero-slider .swiper-pagination-bullet-active-main,
+  .hero-slider .swiper-pagination-bullet-active-prev,
+  .hero-slider .swiper-pagination-bullet-active-next {
     width: var(--inactive-dot-size) !important;
     height: var(--inactive-dot-size) !important;
     border-radius: 50% !important;
@@ -108,22 +177,33 @@ const paginationStyles = `
   }
 
   /* Ensure no scaling or stretching occurs */
-  .swiper-pagination-bullet * {
+  .hero-slider .swiper-pagination-bullet * {
     border-radius: inherit !important;
   }
 
   /* Override Swiper's default opacity and color variables */
-  .swiper-pagination-bullet {
+  .hero-slider .swiper-pagination-bullet {
     --swiper-pagination-color: var(--inactive-dot-color) !important;
     --swiper-pagination-bullet-inactive-color: var(--inactive-dot-color) !important;
     --swiper-pagination-bullet-inactive-opacity: 1 !important;
   }
 `;
 
-// Inject the styles
-const styleSheet = document.createElement('style');
-styleSheet.textContent = paginationStyles;
-document.head.appendChild(styleSheet);
+// Safely inject the styles
+function injectStyles() {
+  try {
+    const styleSheet = document.createElement('style');
+    styleSheet.textContent = paginationStyles;
+    styleSheet.setAttribute('data-hero-slider', 'true');
+    document.head.appendChild(styleSheet);
+    Logger.log('Styles injected successfully');
+  } catch (error) {
+    Logger.error('Failed to inject styles:', error);
+  }
+}
+
+// Inject styles immediately
+injectStyles();
 
 // --- 1. PERFORMANCE OPTIMIZED GSAP ANIMATION FUNCTIONS ---
 
@@ -145,17 +225,23 @@ let cachedElements = new Map();
 function getCachedElement(slide, selector) {
   const key = `${slide.dataset.slideIndex || 'unknown'}-${selector}`;
   if (!cachedElements.has(key)) {
-    cachedElements.set(key, slide.querySelector(selector));
+    const element = slide.querySelector(selector);
+    if (element) {
+      cachedElements.set(key, element);
+    }
   }
   return cachedElements.get(key);
 }
 
 function animateSlideIn(slide) {
-  try {
+  return withErrorBoundary(() => {
     const image = getCachedElement(slide, '.hero-slide-img');
     const contentItems = slide.querySelectorAll('.gsap-stagger-item');
     
-    if (!image || contentItems.length === 0) return;
+    if (!image || contentItems.length === 0) {
+      Logger.warn('Required elements not found for animation');
+      return;
+    }
     
     if (slide.classList.contains('swiper-slide-active')) {
       // Use more efficient GSAP animations
@@ -165,29 +251,28 @@ function animateSlideIn(slide) {
         ANIMATION_CONFIG.slideIn.content
       );
     }
-  } catch (error) {
-    console.warn('Animation error:', error);
-  }
+  }, 'animateSlideIn')();
 }
 
 function resetSlide(slide) {
-  try {
+  return withErrorBoundary(() => {
     const image = getCachedElement(slide, '.hero-slide-img');
     const contentItems = slide.querySelectorAll('.gsap-stagger-item');
     
-    if (!image || contentItems.length === 0) return;
+    if (!image || contentItems.length === 0) {
+      Logger.warn('Required elements not found for reset');
+      return;
+    }
     
     gsap.to(image, ANIMATION_CONFIG.reset.image);
     gsap.to(contentItems, ANIMATION_CONFIG.reset.content);
-  } catch (error) {
-    console.warn('Reset animation error:', error);
-  }
+  }, 'resetSlide')();
 }
 
 // --- 2. OPTIMIZED SWIPER INITIALIZATION ---
 
 // Cache pagination element once
-const paginationEl = document.querySelector('.swiper-pagination');
+let paginationEl = null;
 
 // Performance monitoring (optional)
 const performanceMonitor = {
@@ -198,15 +283,19 @@ const performanceMonitor = {
   end(label) {
     const duration = performance.now() - this.startTime;
     if (duration > 16) { // Log if animation takes longer than 16ms (60fps)
-      console.warn(`${label} took ${duration.toFixed(2)}ms`);
+      Logger.warn(`${label} took ${duration.toFixed(2)}ms`);
     }
   }
 };
 
 // Optimized event handlers
 const eventHandlers = {
-  init: function (swiper) {
+  init: withErrorBoundary(function (swiper) {
+    Logger.log('Hero slider init event fired');
     performanceMonitor.start();
+    
+    // Cache pagination element
+    paginationEl = document.querySelector('.hero-slider .swiper-pagination');
     
     const slides = swiper.slides;
     const activeIndex = swiper.activeIndex;
@@ -216,6 +305,7 @@ const eventHandlers = {
       slide.dataset.slideIndex = i; // Cache slide index for DOM queries
       
       if (i === activeIndex) {
+        Logger.log('Animating initial slide:', i);
         animateSlideIn(slide);
       } else {
         resetSlide(slide);
@@ -226,9 +316,14 @@ const eventHandlers = {
     initializeAllBullets();
     
     performanceMonitor.end('Swiper init');
-  },
+  }, 'Swiper init'),
   
-  slideChangeTransitionStart: function (swiper) {
+  slideChange: withErrorBoundary(function (swiper) {
+    Logger.log('Slide change event fired, active index:', swiper.activeIndex);
+  }, 'Slide change'),
+  
+  slideChangeTransitionStart: withErrorBoundary(function (swiper) {
+    Logger.log('Slide transition start, active index:', swiper.activeIndex);
     performanceMonitor.start();
     
     const slides = swiper.slides;
@@ -243,13 +338,15 @@ const eventHandlers = {
     enforcePaginationStyles();
     
     performanceMonitor.end('Slide transition start');
-  },
+  }, 'Slide transition start'),
 
-  slideChangeTransitionEnd: function (swiper) {
+  slideChangeTransitionEnd: withErrorBoundary(function (swiper) {
+    Logger.log('Slide transition end, active index:', swiper.activeIndex);
     performanceMonitor.start();
     
     const activeSlide = swiper.slides[swiper.activeIndex];
     if (activeSlide) {
+      Logger.log('Animating new active slide');
       animateSlideIn(activeSlide);
     }
     
@@ -257,59 +354,68 @@ const eventHandlers = {
     enforcePaginationStyles();
     
     performanceMonitor.end('Slide transition end');
-  },
+  }, 'Slide transition end'),
     
-  autoplayTimeLeft: function(s, time, progress) {
+  autoplayTimeLeft: withErrorBoundary(function(s, time, progress) {
     // Use requestAnimationFrame for smooth progress updates
     requestAnimationFrame(() => {
       if (paginationEl) {
-        paginationEl.style.setProperty('--progress', (1 - progress) * 100 + '%');
+        const progressPercent = (1 - progress) * 100;
+        Logger.log('Autoplay progress:', progressPercent.toFixed(1) + '%');
+        paginationEl.style.setProperty('--progress', progressPercent + '%');
       }
     });
-  }
+  }, 'Autoplay progress')
 };
 
 // Function to fix pagination dot shapes
 function fixPaginationDots() {
-  const bullets = document.querySelectorAll('.swiper-pagination-bullet');
-  const rootStyles = getComputedStyle(document.documentElement);
-  
-  // Get CSS variables
-  const inactiveDotSize = rootStyles.getPropertyValue('--inactive-dot-size').trim() || '0.625rem';
-  const inactiveDotColor = rootStyles.getPropertyValue('--inactive-dot-color').trim() || '#e0e0e0';
-  const activeDotWidth = rootStyles.getPropertyValue('--active-dot-width').trim() || '3rem';
-  const activeDotHeight = rootStyles.getPropertyValue('--active-dot-height').trim() || '0.625rem';
-  const activeDotBorderRadius = rootStyles.getPropertyValue('--active-dot-border-radius').trim() || '0.3125rem';
-  
-  bullets.forEach(bullet => {
-    if (bullet.classList.contains('swiper-pagination-bullet-active')) {
-      // Active dot should be pill-shaped
-      bullet.style.setProperty('width', activeDotWidth, 'important');
-      bullet.style.setProperty('height', activeDotHeight, 'important');
-      bullet.style.setProperty('border-radius', activeDotBorderRadius, 'important');
-      bullet.style.setProperty('background-color', inactiveDotColor, 'important');
-      bullet.style.setProperty('background', inactiveDotColor, 'important');
-      bullet.style.setProperty('opacity', '1', 'important');
-      bullet.style.setProperty('transform', 'none', 'important');
-      bullet.style.setProperty('min-width', activeDotWidth, 'important');
-      bullet.style.setProperty('max-width', activeDotWidth, 'important');
-      bullet.style.setProperty('min-height', activeDotHeight, 'important');
-      bullet.style.setProperty('max-height', activeDotHeight, 'important');
-    } else {
-      // Inactive dots should be circular
-      bullet.style.setProperty('width', inactiveDotSize, 'important');
-      bullet.style.setProperty('height', inactiveDotSize, 'important');
-      bullet.style.setProperty('border-radius', '50%', 'important');
-      bullet.style.setProperty('background-color', inactiveDotColor, 'important');
-      bullet.style.setProperty('background', inactiveDotColor, 'important');
-      bullet.style.setProperty('opacity', '1', 'important');
-      bullet.style.setProperty('transform', 'none', 'important');
-      bullet.style.setProperty('min-width', inactiveDotSize, 'important');
-      bullet.style.setProperty('max-width', inactiveDotSize, 'important');
-      bullet.style.setProperty('min-height', inactiveDotSize, 'important');
-      bullet.style.setProperty('max-height', inactiveDotSize, 'important');
+  return withErrorBoundary(() => {
+    const bullets = document.querySelectorAll('.hero-slider .swiper-pagination-bullet');
+    if (bullets.length === 0) {
+      Logger.warn('No pagination bullets found');
+      return;
     }
-  });
+    
+    const rootStyles = getComputedStyle(document.documentElement);
+    
+    // Get CSS variables with fallbacks
+    const inactiveDotSize = rootStyles.getPropertyValue('--inactive-dot-size').trim() || HERO_SLIDER_CONFIG.cssVariables.inactiveDotSize;
+    const inactiveDotColor = rootStyles.getPropertyValue('--inactive-dot-color').trim() || HERO_SLIDER_CONFIG.cssVariables.inactiveDotColor;
+    const activeDotWidth = rootStyles.getPropertyValue('--active-dot-width').trim() || HERO_SLIDER_CONFIG.cssVariables.activeDotWidth;
+    const activeDotHeight = rootStyles.getPropertyValue('--active-dot-height').trim() || HERO_SLIDER_CONFIG.cssVariables.activeDotHeight;
+    const activeDotBorderRadius = rootStyles.getPropertyValue('--active-dot-border-radius').trim() || HERO_SLIDER_CONFIG.cssVariables.activeDotBorderRadius;
+    
+    bullets.forEach(bullet => {
+      if (bullet.classList.contains('swiper-pagination-bullet-active')) {
+        // Active dot should be pill-shaped
+        bullet.style.setProperty('width', activeDotWidth, 'important');
+        bullet.style.setProperty('height', activeDotHeight, 'important');
+        bullet.style.setProperty('border-radius', activeDotBorderRadius, 'important');
+        bullet.style.setProperty('background-color', inactiveDotColor, 'important');
+        bullet.style.setProperty('background', inactiveDotColor, 'important');
+        bullet.style.setProperty('opacity', '1', 'important');
+        bullet.style.setProperty('transform', 'none', 'important');
+        bullet.style.setProperty('min-width', activeDotWidth, 'important');
+        bullet.style.setProperty('max-width', activeDotWidth, 'important');
+        bullet.style.setProperty('min-height', activeDotHeight, 'important');
+        bullet.style.setProperty('max-height', activeDotHeight, 'important');
+      } else {
+        // Inactive dots should be circular
+        bullet.style.setProperty('width', inactiveDotSize, 'important');
+        bullet.style.setProperty('height', inactiveDotSize, 'important');
+        bullet.style.setProperty('border-radius', '50%', 'important');
+        bullet.style.setProperty('background-color', inactiveDotColor, 'important');
+        bullet.style.setProperty('background', inactiveDotColor, 'important');
+        bullet.style.setProperty('opacity', '1', 'important');
+        bullet.style.setProperty('transform', 'none', 'important');
+        bullet.style.setProperty('min-width', inactiveDotSize, 'important');
+        bullet.style.setProperty('max-width', inactiveDotSize, 'important');
+        bullet.style.setProperty('min-height', inactiveDotSize, 'important');
+        bullet.style.setProperty('max-height', inactiveDotSize, 'important');
+      }
+    });
+  }, 'fixPaginationDots')();
 }
 
 // Run the fix more frequently to catch dynamic changes
@@ -322,73 +428,129 @@ function enforcePaginationStyles() {
 
 // Ensure all bullets are rendered and styled correctly on page load
 function initializeAllBullets() {
-  // Force Swiper to render all bullets
-  if (swiper && swiper.pagination) {
-    swiper.pagination.render();
-    swiper.pagination.update();
-  }
-  
-  // Wait a bit for rendering, then enforce styles
-  setTimeout(() => {
-    enforcePaginationStyles();
-  }, 100);
+  return withErrorBoundary(() => {
+    // Force Swiper to render all bullets
+    if (heroSwiper && heroSwiper.pagination) {
+      heroSwiper.pagination.render();
+      heroSwiper.pagination.update();
+    }
+    
+    // Wait a bit for rendering, then enforce styles
+    setTimeout(() => {
+      enforcePaginationStyles();
+    }, 100);
+  }, 'initializeAllBullets')();
 }
 
-// Initialize Swiper with optimized settings
-const swiper = new Swiper('.hero-slider .swiper', {
-  // --- BASE SETTINGS (APPLY TO SCREENS 991px AND SMALLER) ---
-  slidesPerView: 1,
-  centeredSlides: false,
-  spaceBetween: 0,
+// Initialize Hero Swiper with optimized settings
+let heroSwiper = null;
+let initializationRetries = 0;
 
-  // --- Core Behavior (Inherited by all sizes) ---
-  loop: true,
-  speed: 600, // Reduced for better performance
-  updateOnWindowResize: false, // Prevent unnecessary updates
-  
-  // --- Breakpoints Configuration ---
-  breakpoints: {
-    // --- SETTINGS FOR DESKTOP (992px AND WIDER) ---
-    992: {
-      slidesPerView: 'auto',
-      centeredSlides: true,
-      spaceBetween: 20,
+function initializeHeroSwiper() {
+  return withErrorBoundary(() => {
+    // Check if hero slider exists and hasn't been initialized
+    const heroSlider = document.querySelector('.hero-slider .swiper');
+    if (!heroSlider) {
+      Logger.warn('Hero slider not found');
+      return false;
     }
-  },
+    
+    // Check if already initialized
+    if (heroSlider.swiper) {
+      Logger.log('Hero slider already initialized, destroying and reinitializing...');
+      heroSlider.swiper.destroy(true, true);
+      heroSwiper = null;
+    }
 
-  autoplay: {
-    delay: 5000,
-    disableOnInteraction: false,
-    pauseOnMouseEnter: false,
-    waitForTransition: true, // Prevent autoplay conflicts
-  },
-  
-  pagination: {
-    el: '.swiper-pagination',
-    clickable: true,
-    dynamicBullets: false, // Show all bullets from the start
-    renderBullet: function (index, className) {
-      // Custom bullet rendering to work with pill-shaped active dot
-      const isActive = className.includes('swiper-pagination-bullet-active');
-      const width = isActive ? 'var(--active-dot-width, 3rem)' : 'var(--inactive-dot-size, 0.625rem)';
-      const borderRadius = isActive ? 'var(--active-dot-border-radius, 0.3125rem)' : '50%';
-      const backgroundColor = 'var(--inactive-dot-color, #e0e0e0)';
-      const height = 'var(--active-dot-height, 0.625rem)';
-      const margin = 'var(--inactive-dot-margin, 0.25rem)';
+    Logger.log('Initializing hero slider...');
+
+    // Check for required dependencies
+    if (typeof Swiper === 'undefined') {
+      Logger.error('Swiper.js is not loaded');
+      return false;
+    }
+    
+    if (typeof gsap === 'undefined') {
+      Logger.error('GSAP is not loaded');
+      return false;
+    }
+
+    heroSwiper = new Swiper('.hero-slider .swiper', {
+      // --- BASE SETTINGS (APPLY TO SCREENS 991px AND SMALLER) ---
+      slidesPerView: 1,
+      centeredSlides: false,
+      spaceBetween: 0,
+
+      // --- Core Behavior (Inherited by all sizes) ---
+      loop: true,
+      speed: HERO_SLIDER_CONFIG.animationSpeed,
+      updateOnWindowResize: false, // Prevent unnecessary updates
       
-      return `<span class="${className}" style="width: ${width}; height: ${height}; border-radius: ${borderRadius}; background-color: ${backgroundColor}; margin: 0 ${margin};"></span>`;
-    }
-  },
-  
-  // --- Optimized Event Listeners ---
-  on: eventHandlers
-});
+      // --- Breakpoints Configuration ---
+      breakpoints: {
+        // --- SETTINGS FOR DESKTOP (992px AND WIDER) ---
+        [HERO_SLIDER_CONFIG.breakpoints.desktop]: {
+          slidesPerView: 'auto',
+          centeredSlides: true,
+          spaceBetween: 20,
+        }
+      },
+
+      autoplay: {
+        delay: HERO_SLIDER_CONFIG.autoplayDelay,
+        disableOnInteraction: false,
+        pauseOnMouseEnter: false,
+        waitForTransition: true, // Prevent autoplay conflicts
+      },
+      
+      pagination: {
+        el: '.hero-slider .swiper-pagination',
+        clickable: true,
+        dynamicBullets: false, // Show all bullets from the start
+        renderBullet: function (index, className) {
+          // Custom bullet rendering to work with pill-shaped active dot
+          const isActive = className.includes('swiper-pagination-bullet-active');
+          const width = isActive ? 'var(--active-dot-width, 3rem)' : 'var(--inactive-dot-size, 0.625rem)';
+          const borderRadius = isActive ? 'var(--active-dot-border-radius, 0.3125rem)' : '50%';
+          const backgroundColor = 'var(--inactive-dot-color, #e0e0e0)';
+          const height = 'var(--active-dot-height, 0.625rem)';
+          const margin = 'var(--inactive-dot-margin, 0.25rem)';
+          
+          return `<span class="${className}" style="width: ${width}; height: ${height}; border-radius: ${borderRadius}; background-color: ${backgroundColor}; margin: 0 ${margin};"></span>`;
+        }
+      },
+      
+      // --- Optimized Event Listeners ---
+      on: eventHandlers
+    });
+    
+    Logger.log('Hero slider initialized successfully');
+    return true;
+  }, 'initializeHeroSwiper')();
+}
+
+// Retry initialization with exponential backoff
+function retryInitialization() {
+  if (initializationRetries < HERO_SLIDER_CONFIG.maxRetries) {
+    initializationRetries++;
+    Logger.warn(`Retrying initialization (attempt ${initializationRetries}/${HERO_SLIDER_CONFIG.maxRetries})`);
+    
+    setTimeout(() => {
+      if (!initializeHeroSwiper()) {
+        retryInitialization();
+      }
+    }, HERO_SLIDER_CONFIG.retryDelay * initializationRetries);
+  } else {
+    Logger.error('Failed to initialize hero slider after maximum retries');
+  }
+}
 
 // --- 3. PERFORMANCE CLEANUP ---
 
 // Clear cache when needed
 function clearCache() {
   cachedElements.clear();
+  Logger.log('Cache cleared');
 }
 
 // Optional: Clear cache on window resize (debounced)
@@ -407,30 +569,132 @@ window.addEventListener('beforeunload', clearCache);
 // --- 4. MUTATION OBSERVER FOR DYNAMIC CHANGES ---
 
 // Watch for any changes to the pagination and enforce styles
-const paginationObserver = new MutationObserver(function(mutations) {
-  mutations.forEach(function(mutation) {
-    if (mutation.type === 'attributes' || mutation.type === 'childList') {
-      enforcePaginationStyles();
-    }
-  });
-});
+let paginationObserver = null;
 
-// Start observing the pagination container
-const paginationContainer = document.querySelector('.swiper-pagination');
-if (paginationContainer) {
-  paginationObserver.observe(paginationContainer, {
-    attributes: true,
-    childList: true,
-    subtree: true
-  });
+function setupPaginationObserver() {
+  return withErrorBoundary(() => {
+    const paginationContainer = document.querySelector('.hero-slider .swiper-pagination');
+    if (paginationContainer && !paginationObserver) {
+      paginationObserver = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'attributes' || mutation.type === 'childList') {
+            enforcePaginationStyles();
+          }
+        });
+      });
+
+      paginationObserver.observe(paginationContainer, {
+        attributes: true,
+        childList: true,
+        subtree: true
+      });
+      
+      Logger.log('Pagination observer setup complete');
+    }
+  }, 'setupPaginationObserver')();
 }
 
-// Ensure everything is properly initialized when DOM is ready
+// --- 5. INITIALIZATION WITH CONFLICT PREVENTION ---
+
+// Wait for DOM and other scripts to load
 document.addEventListener('DOMContentLoaded', function() {
-  // Give Swiper a moment to initialize, then ensure all bullets are visible
+  Logger.log('DOMContentLoaded - attempting hero slider initialization');
+  // Give other scripts time to initialize
   setTimeout(() => {
-    if (swiper && swiper.pagination) {
-      initializeAllBullets();
+    if (!initializeHeroSwiper()) {
+      retryInitialization();
+    } else {
+      // Ensure everything is properly initialized
+      setTimeout(() => {
+        if (heroSwiper && heroSwiper.pagination) {
+          Logger.log('Initializing bullets after hero slider init');
+          initializeAllBullets();
+          setupPaginationObserver();
+        }
+      }, 200);
     }
-  }, 200);
+  }, 1000); // Increased delay to prevent conflicts
 });
+
+// Also try to initialize on window load as backup
+window.addEventListener('load', function() {
+  Logger.log('Window load - checking hero slider');
+  if (!heroSwiper) {
+    Logger.log('Hero slider not initialized, trying again');
+    setTimeout(() => {
+      if (!initializeHeroSwiper()) {
+        retryInitialization();
+      }
+    }, 100);
+  } else {
+    Logger.log('Hero slider already initialized');
+  }
+});
+
+// Additional initialization attempt after a longer delay
+setTimeout(() => {
+  if (!heroSwiper) {
+    Logger.log('Delayed initialization attempt');
+    if (!initializeHeroSwiper()) {
+      retryInitialization();
+    }
+  }
+}, 2000);
+
+// --- 6. PUBLIC API FOR EXTERNAL CONTROL ---
+window.HeroSlider = {
+  // Get the swiper instance
+  getInstance: () => heroSwiper,
+  
+  // Manually go to slide
+  goToSlide: (index) => {
+    if (heroSwiper) {
+      heroSwiper.slideTo(index);
+    }
+  },
+  
+  // Start/stop autoplay
+  startAutoplay: () => {
+    if (heroSwiper && heroSwiper.autoplay) {
+      heroSwiper.autoplay.start();
+    }
+  },
+  
+  stopAutoplay: () => {
+    if (heroSwiper && heroSwiper.autoplay) {
+      heroSwiper.autoplay.stop();
+    }
+  },
+  
+  // Destroy the slider
+  destroy: () => {
+    if (heroSwiper) {
+      heroSwiper.destroy(true, true);
+      heroSwiper = null;
+      clearCache();
+      if (paginationObserver) {
+        paginationObserver.disconnect();
+        paginationObserver = null;
+      }
+    }
+  },
+  
+  // Reinitialize the slider
+  reinitialize: () => {
+    window.HeroSlider.destroy();
+    setTimeout(() => {
+      initializeHeroSwiper();
+    }, 100);
+  },
+  
+  // Get configuration
+  getConfig: () => HERO_SLIDER_CONFIG,
+  
+  // Update configuration
+  updateConfig: (newConfig) => {
+    Object.assign(HERO_SLIDER_CONFIG, newConfig);
+    Logger.log('Configuration updated:', newConfig);
+  }
+};
+
+Logger.log('Hero Slider script loaded successfully'); 
