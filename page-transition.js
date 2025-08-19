@@ -318,7 +318,7 @@ class PageTransition {
   // Update configuration
   updateConfig(newConfig) {
     Object.assign(PAGE_TRANSITION_CONFIG, newConfig);
-    console.log('[Page Transition] Configuration updated:', newConfig);
+    //console.log('[Page Transition] Configuration updated:', newConfig);
   }
   
   // Get current status
@@ -377,8 +377,8 @@ window.PageTransition = {
 };
 
 // --- CONSOLE LOGGING ---
-console.log('[Page Transition] Script loaded successfully');
-console.log('[Page Transition] Use window.PageTransition to control the transition');
+//console.log('[Page Transition] Script loaded successfully');
+//console.log('[Page Transition] Use window.PageTransition to control the transition');
 
 // --- EXPORT FOR MODULE SYSTEMS ---
 if (typeof module !== 'undefined' && module.exports) {
