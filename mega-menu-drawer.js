@@ -267,14 +267,12 @@
         const target = event.target;
         
         if (target.closest(CONFIG.selectors.open)) {
-            console.log('Menu open button clicked');
             event.preventDefault();
             openMenu();
             return;
         }
         
         if (target.closest(CONFIG.selectors.close)) {
-            console.log('Menu close button clicked');
             event.preventDefault();
             closeMenu(false);
             return;
@@ -286,7 +284,6 @@
             !target.closest(CONFIG.selectors.close) && 
             !target.closest(CONFIG.selectors.openSub) &&
             !target.closest(CONFIG.selectors.back)) {
-            console.log('External navigation link clicked, closing menu');
             
             // Prevent the default navigation
             event.preventDefault();
@@ -367,8 +364,6 @@
     };
 
     const handlePopState = () => {
-        console.log('Browser navigation detected (popstate)');
-        
         // Detach existing listeners first
         detachEventListeners();
         
@@ -390,7 +385,6 @@
         
         // Re-initialize after a short delay to ensure DOM is ready
         setTimeout(() => {
-            console.log('Re-initializing after popstate...');
             initializeMenu();
             attachEventListeners();
         }, CONFIG.performance.flashPreventionDelay);
@@ -418,11 +412,8 @@
     };
 
     const initializeMenu = () => {
-        console.log('Initializing menu...');
-        
         // Check if GSAP is available
         if (typeof gsap === 'undefined') {
-            console.error("Mega Menu Error: GSAP is not loaded.");
             return false;
         }
         
@@ -432,15 +423,7 @@
         mainSidebar = domCache.get(CONFIG.selectors.mainPanel);
         contentToSlide = domCache.get(CONFIG.selectors.contentToSlide);
         
-        console.log('Elements found:', {
-            sidebarComponent: !!sidebarComponent,
-            backdrop: !!backdrop,
-            mainSidebar: !!mainSidebar,
-            contentToSlide: !!contentToSlide
-        });
-        
         if (!sidebarComponent || !mainSidebar || !contentToSlide) {
-            console.error("Mega Menu Error: Critical data-attribute targets are missing.");
             return false;
         }
         
@@ -448,7 +431,6 @@
         primaryNavLinks = Array.from(allNavLinks).filter(link => !link.closest(CONFIG.selectors.subPanel));
         
         if (primaryNavLinks.length === 0) {
-            console.error("Mega Menu Error: No primary navigation links found.");
             return false;
         }
       
@@ -469,18 +451,14 @@
         bodyStyle.overflow = '';
         
         isInitialized = true;
-        console.log('Menu initialized successfully');
         return true;
     };
 
     const attachEventListeners = () => {
-        console.log('Attaching event listeners...');
-        
         // Always detach first to ensure clean state
         detachEventListeners();
 
         if (!mainSidebar || !backdrop) {
-            console.log('Cannot attach listeners - elements not found');
             return;
         }
 
@@ -491,30 +469,9 @@
         window.addEventListener('popstate', handlePopState);
 
         eventListenersAttached = true;
-        console.log('Event listeners attached successfully');
-        
-        // Test if the open button exists and log it
-        const openButton = domCache.get(CONFIG.selectors.open);
-        console.log('Open button found:', !!openButton);
-        if (openButton) {
-            console.log('Open button element:', openButton);
-            // Test click event on the button
-            openButton.addEventListener('click', (e) => {
-                console.log('Direct click on open button detected');
-            }, { once: true });
-        }
-        
-        // Also test document click event
-        document.addEventListener('click', (e) => {
-            if (e.target.closest(CONFIG.selectors.open)) {
-                console.log('Document click detected on open button');
-            }
-        }, { once: true });
     };
 
     const detachEventListeners = () => {
-        console.log('Detaching event listeners...');
-        
         // Always try to remove listeners, even if not marked as attached
         document.removeEventListener('click', handleGlobalClick);
         if (mainSidebar) {
@@ -528,7 +485,6 @@
         window.removeEventListener('popstate', handlePopState);
 
         eventListenersAttached = false;
-        console.log('Event listeners detached');
     };
 
     // ============================================================================
@@ -536,7 +492,6 @@
     // ============================================================================
     
     const attemptInitialization = () => {
-        console.log('Attempting initialization...');
         if (initializeMenu()) {
             attachEventListeners();
             return true;
@@ -569,22 +524,20 @@
     hideMenuImmediately();
 
     document.addEventListener("DOMContentLoaded", () => {
-        console.log('DOMContentLoaded fired');
         attemptInitialization();
     });
 
     // Also initialize if DOM is already loaded (for browser back/forward)
     if (document.readyState === 'loading') {
-        console.log('DOM still loading, waiting for DOMContentLoaded');
+        // DOM is still loading, wait for DOMContentLoaded
     } else {
-        console.log('DOM already loaded, initializing immediately');
+        // DOM is already loaded, initialize immediately
         attemptInitialization();
     }
 
     // Handle page visibility changes (for when user returns to tab)
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden && !isInitialized) {
-            console.log('Page became visible, re-initializing');
             setTimeout(() => {
                 attemptInitialization();
             }, CONFIG.performance.flashPreventionDelay);
@@ -593,9 +546,7 @@
 
     // Additional event listener for pageshow event (better for browser navigation)
     window.addEventListener('pageshow', (event) => {
-        console.log('Pageshow event fired, persisted:', event.persisted);
         if (event.persisted) {
-            console.log('Page was loaded from cache, re-initializing');
             setTimeout(() => {
                 // Force close any open menu first
                 if (sidebarComponent && mainSidebar) {
@@ -625,7 +576,6 @@
             return;
         }
         
-        console.log(`Initialization attempt ${initAttempts + 1}/${CONFIG.performance.maxInitAttempts}`);
         if (attemptInitialization()) {
             clearInterval(initInterval);
         }
