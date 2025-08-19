@@ -568,6 +568,24 @@
     // Hide menu immediately without waiting for GSAP
     hideMenuImmediately();
 
+    // Prevent menu flash when GSAP is available
+    const preventMenuFlash = () => {
+        const sidebarComponent = domCache.get(CONFIG.selectors.component);
+        const mainSidebar = domCache.get(CONFIG.selectors.mainPanel);
+        const backdrop = domCache.get(CONFIG.selectors.backdrop);
+        
+        if (sidebarComponent && mainSidebar && typeof gsap !== 'undefined') {
+            gsap.set(sidebarComponent, { pointerEvents: 'none' });
+            gsap.set(mainSidebar, { x: '-100%' });
+            if (backdrop) gsap.set(backdrop, { opacity: 0 });
+            
+            // Reset body styles
+            const bodyStyle = document.body.style;
+            bodyStyle.paddingRight = '';
+            bodyStyle.overflow = '';
+        }
+    };
+
     // Wait for GSAP to be available before running
     const waitForGSAP = () => {
         if (typeof gsap !== 'undefined') {
