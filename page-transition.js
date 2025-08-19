@@ -18,7 +18,12 @@ const PAGE_TRANSITION_CONFIG = {
   // Auto-hide settings
   autoHide: true,
   autoHideDelay: 1000, // Hide after 1 second
-  minDisplayTime: 300 // Minimum time to show transition
+  minDisplayTime: 300, // Minimum time to show transition
+  
+  // Use existing HTML elements (set to true if you add HTML to Webflow)
+  useExistingElements: false,
+  overlaySelector: '.page-transition-overlay',
+  preloadSelector: '.page-transition-preload'
 };
 
 // --- STYLES ---
@@ -111,11 +116,16 @@ class PageTransition {
       return;
     }
     
-    // Create preload overlay to prevent flash
-    this.createPreloadOverlay();
-    
-    // Create main overlay
-    this.createOverlay();
+    // Check if we should use existing elements or create new ones
+    if (PAGE_TRANSITION_CONFIG.useExistingElements) {
+      this.useExistingElements();
+    } else {
+      // Create preload overlay to prevent flash
+      this.createPreloadOverlay();
+      
+      // Create main overlay
+      this.createOverlay();
+    }
     
     // Set up event listeners
     this.setupEventListeners();
@@ -136,6 +146,30 @@ class PageTransition {
         preload.parentNode.removeChild(preload);
       }
     }, 100);
+  }
+  
+  // Use existing HTML elements from Webflow
+  useExistingElements() {
+    // Find existing overlay
+    this.overlay = document.querySelector(PAGE_TRANSITION_CONFIG.overlaySelector);
+    
+    if (!this.overlay) {
+      console.warn('[Page Transition] Existing overlay not found, falling back to creating one');
+      this.createOverlay();
+      return;
+    }
+    
+    console.log('[Page Transition] Using existing overlay element');
+    
+    // Remove preload if it exists
+    const existingPreload = document.querySelector(PAGE_TRANSITION_CONFIG.preloadSelector);
+    if (existingPreload) {
+      setTimeout(() => {
+        if (existingPreload.parentNode) {
+          existingPreload.parentNode.removeChild(existingPreload);
+        }
+      }, 100);
+    }
   }
   
   // Create the main overlay
