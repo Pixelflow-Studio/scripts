@@ -20,8 +20,8 @@ const PAGE_TRANSITION_CONFIG = {
   autoHideDelay: 1000, // Hide after 1 second
   minDisplayTime: 300, // Minimum time to show transition
   
-  // Use existing HTML elements (set to true if you add HTML to Webflow)
-  useExistingElements: false,
+  // Always use existing HTML elements from Webflow
+  useExistingElements: true,
   overlaySelector: '.page-transition-overlay',
   preloadSelector: '.page-transition-preload'
 };
@@ -116,16 +116,8 @@ class PageTransition {
       return;
     }
     
-    // Check if we should use existing elements or create new ones
-    if (PAGE_TRANSITION_CONFIG.useExistingElements) {
-      this.useExistingElements();
-    } else {
-      // Create preload overlay to prevent flash
-      this.createPreloadOverlay();
-      
-      // Create main overlay
-      this.createOverlay();
-    }
+    // Always try to use existing elements first, fallback to creating them
+    this.useExistingElements();
     
     // Set up event listeners
     this.setupEventListeners();
