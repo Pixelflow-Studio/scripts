@@ -288,6 +288,7 @@ function resetSlide(slide) {
 // Cache pagination element once
 let paginationEl = null;
 let isInitialLoad = true;
+let isInitialAnimationComplete = false;
 
 // Performance monitoring (optional)
 const performanceMonitor = {
@@ -323,12 +324,23 @@ const eventHandlers = {
         Logger.log('Animating initial slide:', i);
         // For initial load, delay animation slightly to let page transition complete
         if (isInitialLoad) {
+          // Reset progress bar to 0% for initial load
+          if (paginationEl) {
+            paginationEl.style.setProperty('--progress', '0%');
+          }
+          
           setTimeout(() => {
             animateSlideIn(slide);
+            // Mark initial animation as complete after a delay
+            setTimeout(() => {
+              isInitialAnimationComplete = true;
+              Logger.log('Initial animation complete, enabling progress bar');
+            }, 1000); // Wait for animation to finish
           }, 100);
           isInitialLoad = false;
         } else {
           animateSlideIn(slide);
+          isInitialAnimationComplete = true;
         }
       } else {
         resetSlide(slide);
@@ -385,6 +397,11 @@ const eventHandlers = {
   }, 'Slide transition end'),
     
   autoplayTimeLeft: withErrorBoundary(function(s, time, progress) {
+    // Don't update progress until initial animation is complete
+    if (!isInitialAnimationComplete) {
+      return;
+    }
+    
     // Use requestAnimationFrame for smooth progress updates
     requestAnimationFrame(() => {
       if (paginationEl) {
