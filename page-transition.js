@@ -177,6 +177,9 @@ class PageTransition {
     if (PAGE_TRANSITION_CONFIG.autoHide) {
       this.setupAutoHide();
     }
+    
+    // Handle browser navigation (back/forward buttons)
+    this.setupNavigationEvents();
   }
   
   // Set up auto-hide functionality
@@ -205,6 +208,52 @@ class PageTransition {
         this.hide();
       }
     }, PAGE_TRANSITION_CONFIG.autoHideDelay);
+  }
+  
+  // Set up navigation events for back/forward buttons
+  setupNavigationEvents() {
+    // Show transition when page is about to unload (navigation starting)
+    window.addEventListener('beforeunload', () => {
+      this.show();
+    });
+    
+    // Handle popstate events (back/forward button clicks)
+    window.addEventListener('popstate', () => {
+      this.show();
+      
+      // Hide after a short delay to allow page to load
+      setTimeout(() => {
+        this.hide();
+      }, 500);
+    });
+    
+    // Handle page visibility changes (when user switches tabs)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        // Page is being hidden (user navigating away)
+        this.show();
+      } else {
+        // Page is becoming visible again
+        setTimeout(() => {
+          this.hide();
+        }, 300);
+      }
+    });
+    
+    // Handle page show/hide events (mobile browsers)
+    window.addEventListener('pageshow', (event) => {
+      // If page is being shown from cache (back/forward navigation)
+      if (event.persisted) {
+        this.show();
+        setTimeout(() => {
+          this.hide();
+        }, 500);
+      }
+    });
+    
+    window.addEventListener('pagehide', () => {
+      this.show();
+    });
   }
   
   // Show the transition
