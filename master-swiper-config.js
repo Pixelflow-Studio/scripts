@@ -1,878 +1,862 @@
-// ===================================================================
-// MASTER SWIPER INITIALIZER (v2 - With MutationObserver & Performance Optimizations)
-// ===================================================================
+
 
 (function() {
-  // PERFORMANCE OPTIMIZATION UTILITIES
-  // -------------------------------------------------------------------
-  
-  // Feature detection for low-end devices
-  const isLowEndDevice = () => {
-      // Check for low memory devices
-      if (navigator.deviceMemory && navigator.deviceMemory < 4) return true;
-      
-      // Check for slow CPU (using hardware concurrency)
-      if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) return true;
-      
-      // Check for slow connection
-      if (navigator.connection) {
-          const connection = navigator.connection;
-          if (connection.effectiveType === 'slow-2g' || 
-              connection.effectiveType === '2g' || 
-              connection.effectiveType === '3g') return true;
-      }
-      
-      // Check for reduced motion preference
-      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true;
-      
-      return false;
-  };
-  
-  // Debounce utility function
-  const debounce = (func, wait) => {
-      let timeout;
-      return function executedFunction(...args) {
-          const later = () => {
-              clearTimeout(timeout);
-              func(...args);
-          };
-          clearTimeout(timeout);
-          timeout = setTimeout(later, wait);
-      };
-  };
-  
-  // Simplified easing for low-end devices
-  const getOptimizedEasing = (swiperEl) => {
-      if (isLowEndDevice()) {
-          return 'ease-out';
-      }
-      
-      // Check for easing type attribute
-      const easingType = swiperEl.getAttribute('data-swiper-easing-type');
-      if (easingType) {
-          switch (easingType) {
-              case 'fast':
-                  return 'cubic-bezier(0.25, 0.1, 0.25, 1)';
-              case 'smooth':
-                  return 'cubic-bezier(0.4, 0, 0.2, 1)';
-              case 'bouncy':
-                  return 'cubic-bezier(0.34, 1.56, 0.64, 1)';
-              case 'ease-out':
-                  return 'ease-out';
-              case 'ease-in-out':
-                  return 'ease-in-out';
-              case 'linear':
-                  return 'linear';
-              default:
-                  return 'cubic-bezier(0.4, 0, 0.2, 1)'; // Material Design default
-          }
-      }
-      
-      // Default easing for product cards
-      return 'cubic-bezier(0.25, 0.1, 0.25, 1)';
-  };
-  
+    'use strict';
 
-  
-  // Optimized animation speed for low-end devices
-  const getOptimizedSpeed = () => {
-      return isLowEndDevice() ? 400 : 600;
-  };
+    // ===================================================================
+    // CONFIGURATION & CONSTANTS
+    // ===================================================================
+    
+    const CONFIG = {
+        // Performance settings
+        DEBOUNCE_DELAY: 250,
+        LOW_END_MEMORY_THRESHOLD: 4,
+        LOW_END_CPU_THRESHOLD: 4,
+        ANIMATION_SPEED: {
+            NORMAL: 600,
+            OPTIMIZED: 400
+        },
+        
+        // Responsive breakpoints
+        BREAKPOINTS: {
+            MOBILE: 480,
+            TABLET: 768,
+            DESKTOP: 992
+        },
+        
+        // Swiper configurations
+        SWIPER_CONFIGS: [
+            {
+                name: 'category',
+                selector: '[data-swiper="category"] .swiper',
+                options: {
+                    slidesPerView: 5.5,
+                    spaceBetween: 20,
+                    loop: false,
+                    speed: null, // Will be set dynamically
+                    easing: null, // Will be set dynamically
+                    navigation: {
+                        nextEl: '[data-swiper="category"] .swiper-next',
+                        prevEl: '[data-swiper="category"] .swiper-prev',
+                    },
+                    scrollbar: {
+                        el: '[data-swiper="category"] .swiper-scrollbar',
+                        draggable: true,
+                    },
+                    breakpoints: {
+                        0: { slidesPerView: 1.6, spaceBetween: 10 },
+                        480: { slidesPerView: 2.2, spaceBetween: 10 },
+                        768: { slidesPerView: 3.2, spaceBetween: 20 },
+                        992: { slidesPerView: 5.5, spaceBetween: 20 },
+                    }
+                }
+            },
+            {
+                name: 'best-sellers',
+                selector: '[data-swiper="best-sellers"] .swiper',
+                options: {
+                    slidesPerView: 4.5,
+                    spaceBetween: 20,
+                    loop: false,
+                    speed: null,
+                    easing: null,
+                    navigation: {
+                        nextEl: '[data-swiper="best-sellers"] .swiper-next',
+                        prevEl: '[data-swiper="best-sellers"] .swiper-prev',
+                    },
+                    scrollbar: {
+                        el: '[data-swiper="best-sellers"] .swiper-scrollbar',
+                        draggable: true,
+                    },
+                    breakpoints: {
+                        0: { slidesPerView: 1.2, spaceBetween: 10 },
+                        480: { slidesPerView: 2.2, spaceBetween: 10 },
+                        768: { slidesPerView: 2.5, spaceBetween: 20 },
+                        992: { slidesPerView: 4.5, spaceBetween: 20 },
+                    }
+                }
+            },
+            {
+                name: 'tanning',
+                selector: '[data-swiper="tanning"] .swiper',
+                options: {
+                    slidesPerView: 3,
+                    spaceBetween: 20,
+                    loop: false,
+                    speed: null,
+                    easing: null,
+                    navigation: {
+                        nextEl: '[data-swiper="tanning"] .swiper-next',
+                        prevEl: '[data-swiper="tanning"] .swiper-prev',
+                    },
+                    scrollbar: {
+                        el: '[data-swiper="tanning"] .swiper-scrollbar',
+                        draggable: true,
+                    },
+                    breakpoints: {
+                        0: { slidesPerView: 1.2, spaceBetween: 10 },
+                        480: { slidesPerView: 2.2, spaceBetween: 10 },
+                        768: { slidesPerView: 2.5, spaceBetween: 20 },
+                        992: { slidesPerView: 3, spaceBetween: 20 },
+                    }
+                }
+            },
+            {
+                name: 'offers',
+                selector: '[data-swiper="offers"] .swiper',
+                options: {
+                    slidesPerView: 3,
+                    spaceBetween: 20,
+                    loop: false,
+                    speed: null,
+                    easing: null,
+                    navigation: {
+                        nextEl: '[data-swiper="offers"] .swiper-next',
+                        prevEl: '[data-swiper="offers"] .swiper-prev',
+                    },
+                    scrollbar: {
+                        el: '[data-swiper="offers"] .swiper-scrollbar',
+                        draggable: true,
+                    },
+                    breakpoints: {
+                        0: { slidesPerView: 1.2, spaceBetween: 10 },
+                        480: { slidesPerView: 2.2, spaceBetween: 10 },
+                        768: { slidesPerView: 2.5, spaceBetween: 20 },
+                        992: { slidesPerView: 3, spaceBetween: 20 },
+                    }
+                }
+            }
+        ],
+        
+        // Easing presets
+        EASING_PRESETS: {
+            fast: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+            smooth: 'cubic-bezier(0.4, 0, 0.2, 1)',
+            bouncy: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+            'ease-out': 'ease-out',
+            'ease-in-out': 'ease-in-out',
+            linear: 'linear'
+        },
+        
+        // Error messages
+        ERRORS: {
+            SWIPER_NOT_LOADED: 'Swiper library not loaded. Skipping initialization.',
+            NO_WRAPPER: 'No .swiper-wrapper found for selector:',
+            INITIALIZATION_FAILED: 'Failed to initialize Swiper for',
+            UPDATE_FAILED: 'Failed to update Swiper for',
+            DESTROY_FAILED: 'Failed to destroy Swiper for'
+        }
+    };
 
-  // 1. DEFINE ALL SLIDER CONFIGURATIONS
-  // -------------------------------------------------------------------
-  const swiperConfigurations = [
-  
-             {
-           selector: '[data-swiper="category"] .swiper',
-           options: {
-               slidesPerView: 5.5,
-               spaceBetween: 20,
-               loop: false,
-               speed: getOptimizedSpeed(),
-               easing: 'cubic-bezier(0.4, 0, 0.2, 1)', // Will be overridden dynamically
-               navigation: {
-                   nextEl: '[data-swiper="category"] .swiper-next',
-                   prevEl: '[data-swiper="category"] .swiper-prev',
-               },
-               scrollbar: {
-                   el: '[data-swiper="category"] .swiper-scrollbar',
-                   draggable: true,
-               },
-               breakpoints: {
-                   0: { slidesPerView: 1.6, spaceBetween: 10 },
-                   480: { slidesPerView: 2.2, spaceBetween: 10 },
-                   768: { slidesPerView: 3.2, spaceBetween: 20 },
-                   992: { slidesPerView: 5.5, spaceBetween: 20 },
-               }
-           }
-       },
-      
-               {
-           selector: '[data-swiper="best-sellers"] .swiper',
-           options: {
-               slidesPerView: 4.5,
-               spaceBetween: 20,
-               loop: false,
-               speed: getOptimizedSpeed(),
-               easing: 'cubic-bezier(0.4, 0, 0.2, 1)', // Will be overridden dynamically
-               navigation: {
-                   nextEl: '[data-swiper="best-sellers"] .swiper-next',
-                   prevEl: '[data-swiper="best-sellers"] .swiper-prev',
-               },
-               scrollbar: {
-                   el: '[data-swiper="best-sellers"] .swiper-scrollbar',
-                   draggable: true,
-               },
-               breakpoints: {
-                   0: { slidesPerView: 1.2, spaceBetween: 10 },
-                   480: { slidesPerView: 2.2, spaceBetween: 10 },
-                   768: { slidesPerView: 2.5, spaceBetween: 20 },
-                   992: { slidesPerView: 4.5, spaceBetween: 20 },
-               }
-           }
-       },
-       
-       {
-           selector: '[data-swiper="tanning"] .swiper',
-           options: {
-               slidesPerView: 3,
-               spaceBetween: 20,
-               loop: false,
-               speed: getOptimizedSpeed(),
-               easing: 'cubic-bezier(0.4, 0, 0.2, 1)', // Will be overridden dynamically
-               navigation: {
-                   nextEl: '[data-swiper="tanning"] .swiper-next',
-                   prevEl: '[data-swiper="tanning"] .swiper-prev',
-               },
-               scrollbar: {
-                   el: '[data-swiper="tanning"] .swiper-scrollbar',
-                   draggable: true,
-               },
-               breakpoints: {
-                   0: { slidesPerView: 1.2, spaceBetween: 10 },
-                   480: { slidesPerView: 2.2, spaceBetween: 10 },
-                   768: { slidesPerView: 2.5, spaceBetween: 20 },
-                   992: { slidesPerView: 3, spaceBetween: 20 },
-               }
-           }
-       },
-       
-       {
-           selector: '[data-swiper="offers"] .swiper',
-           options: {
-               slidesPerView: 3,
-               spaceBetween: 20,
-               loop: false,
-               speed: getOptimizedSpeed(),
-               easing: 'cubic-bezier(0.4, 0, 0.2, 1)', // Will be overridden dynamically
-               navigation: {
-                   nextEl: '[data-swiper="offers"] .swiper-next',
-                   prevEl: '[data-swiper="offers"] .swiper-prev',
-               },
-               scrollbar: {
-                   el: '[data-swiper="offers"] .swiper-scrollbar',
-                   draggable: true,
-               },
-               breakpoints: {
-                   0: { slidesPerView: 1.2, spaceBetween: 10 },
-                   480: { slidesPerView: 2.2, spaceBetween: 10 },
-                   768: { slidesPerView: 2.5, spaceBetween: 20 },
-                   992: { slidesPerView: 3, spaceBetween: 20 },
-               }
-           }
-       },
-      // Add more configurations here as needed
-   
-  ];
+    // ===================================================================
+    // UTILITY FUNCTIONS
+    // ===================================================================
+    
+    /**
+     * Performance detection utilities
+     */
+    const PerformanceUtils = {
+        /**
+         * Detects if the current device is low-end
+         * @returns {boolean}
+         */
+        isLowEndDevice() {
+            // Check for low memory devices
+            if (navigator.deviceMemory && navigator.deviceMemory < CONFIG.LOW_END_MEMORY_THRESHOLD) {
+                return true;
+            }
+            
+            // Check for slow CPU
+            if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < CONFIG.LOW_END_CPU_THRESHOLD) {
+                return true;
+            }
+            
+            // Check for slow connection
+            if (navigator.connection) {
+                const connection = navigator.connection;
+                if (['slow-2g', '2g', '3g'].includes(connection.effectiveType)) {
+                    return true;
+                }
+            }
+            
+            // Check for reduced motion preference
+            if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                return true;
+            }
+            
+            return false;
+        },
 
-  // 2. INITIALIZATION & OBSERVATION LOGIC
-  // -------------------------------------------------------------------
-  
-  // Cache for tracking initialized swipers and their states
-  const swiperCache = new Map();
-  
-  // Optimized DOM query cache
-  const domCache = new Map();
-  
-  // Cached DOM query function
-  const cachedQuerySelector = (selector) => {
-      if (!domCache.has(selector)) {
-          domCache.set(selector, document.querySelectorAll(selector));
-      }
-      return domCache.get(selector);
-  };
-  
-  // Clear DOM cache when needed
-  const clearDomCache = () => {
-      domCache.clear();
-  };
-  
-  // Track if page is being restored from cache
-  let isPageRestored = false;
-  
-  // Track initialization state
-  let isInitializing = false;
-  
-  function setupSwipers() {
-      // Check if Swiper is available
-      if (typeof Swiper === 'undefined') {
-          console.warn('Swiper library not loaded. Skipping initialization.');
-          return;
-      }
-      
-      // Prevent multiple simultaneous initializations
-      if (isInitializing) {
-          return;
-      }
-      
-      isInitializing = true;
-      
-      // Add class to body to indicate JavaScript is running
-      document.body.classList.add('swiper-js-loaded');
-      
-      // Add performance optimization class for low-end devices
-      if (isLowEndDevice()) {
-          document.body.classList.add('swiper-low-end-device');
-      }
-      
-      // If page is restored from cache, add special class for smooth transitions
-      if (isPageRestored) {
-          document.body.classList.add('swiper-restored');
-      }
-      
-      // Add CSS to hide slides initially - only when JavaScript is running
-      if (!document.getElementById('swiper-hide-styles')) {
-          const style = document.createElement('style');
-          style.id = 'swiper-hide-styles';
-          style.textContent = `
-              /* Only hide swipers when page is being restored from cache */
-              .swiper-restored .swiper:not(.swiper-ready) {
-                  opacity: 0 !important;
-                  visibility: hidden !important;
-                  transition: opacity 0.3s ease, visibility 0.3s ease;
-              }
-              
-              /* Show swipers when they're ready (only for restored pages) */
-              .swiper-restored .swiper.swiper-ready {
-                  opacity: 1 !important;
-                  visibility: visible !important;
-              }
-              
-              /* Keep swipers visible during normal page transitions */
-              .swiper-js-loaded:not(.swiper-restored) .swiper {
-                  opacity: 1 !important;
-                  visibility: visible !important;
-              }
-              
-              /* Only apply hiding when JavaScript is running and Swiper is available */
-              .swiper-js-loaded .swiper:not(.swiper-initialized):not(.swiper-flex-mode) .swiper-wrapper {
-                  opacity: 0;
-                  transition: opacity 0.3s ease;
-              }
-              .swiper-js-loaded .swiper.swiper-initialized .swiper-wrapper,
-              .swiper-js-loaded .swiper.swiper-flex-mode .swiper-wrapper {
-                  opacity: 1;
-              }
-              
-              /* Performance optimizations for low-end devices */
-              .swiper-low-end-device .swiper-wrapper {
-                  will-change: auto;
-              }
-              .swiper-low-end-device .swiper-slide {
-                  will-change: auto;
-              }
-              
-              /* Smooth transitions for restored pages */
-              .swiper-restored .swiper-wrapper {
-                  transition: opacity 0.5s ease-in-out !important;
-              }
-              
-              /* Prevent flash during page transitions */
-              .swiper {
-                  min-height: 200px;
-                  transition: opacity 0.3s ease;
-              }
-              
-              /* Smooth loading state */
-              .swiper-loading {
-                  opacity: 0.7;
-                  transition: opacity 0.3s ease;
-              }
-              
-              .swiper-loaded {
-                  opacity: 1;
-              }
-          `;
-          document.head.appendChild(style);
-      }
-      
-      // Only hide swipers if page is being restored from cache
-      if (isPageRestored) {
-          const allSwipers = document.querySelectorAll('.swiper');
-          allSwipers.forEach(swiperEl => {
-              swiperEl.classList.remove('swiper-ready');
-              const wrapperEl = swiperEl.querySelector('.swiper-wrapper');
-              if (wrapperEl) {
-                  // Force slides to be visible with smooth transition
-                  wrapperEl.style.opacity = '1';
-                  wrapperEl.style.transition = 'opacity 0.5s ease-in-out';
-              }
-          });
-      }
+        /**
+         * Gets optimized animation speed based on device capabilities
+         * @returns {number}
+         */
+        getOptimizedSpeed() {
+            return this.isLowEndDevice() ? CONFIG.ANIMATION_SPEED.OPTIMIZED : CONFIG.ANIMATION_SPEED.NORMAL;
+        },
 
-      swiperConfigurations.forEach(config => {
-          const swiperElements = cachedQuerySelector(config.selector);
-          
-          // Skip if no elements found for this configuration
-          if (swiperElements.length === 0) {
-              return;
-          }
-          
-          swiperElements.forEach(swiperEl => {
-              const wrapperEl = swiperEl.querySelector('.swiper-wrapper');
-              if (!wrapperEl) {
-                  console.warn(`No .swiper-wrapper found for selector: ${config.selector}`);
-                  return;
-              }
+        /**
+         * Gets optimized easing function based on device and configuration
+         * @param {HTMLElement} swiperEl - The swiper element
+         * @returns {string}
+         */
+        getOptimizedEasing(swiperEl) {
+            if (this.isLowEndDevice()) {
+                return 'ease-out';
+            }
+            
+            const easingType = swiperEl.getAttribute('data-swiper-easing-type');
+            if (easingType && CONFIG.EASING_PRESETS[easingType]) {
+                return CONFIG.EASING_PRESETS[easingType];
+            }
+            
+            return CONFIG.EASING_PRESETS.smooth;
+        }
+    };
 
-              // THE CORE LOGIC
-              const initOrUpdateSwiper = () => {
-                  try {
-                      const cacheKey = `${config.selector}-${swiperEl.dataset.swiperId || swiperEl.id || swiperEl.className}`;
-                      const cachedData = swiperCache.get(cacheKey);
-                      const slideCount = wrapperEl.querySelectorAll('.swiper-slide').length;
-                      
-                      // Check if we need to reinitialize (new slides, different count, or no cache)
-                      const needsReinit = !cachedData || 
-                                       cachedData.slideCount !== slideCount ||
-                                       !swiperEl.swiper;
-                      
-                      if (needsReinit) {
-                          // Destroy existing instance if it exists
-                          if (swiperEl.swiper) {
-                              swiperEl.swiper.destroy(true, true);
-                          }
-                          
-                          // Check if we should initialize swiper based on slide count
-                          if (slideCount > 0) {
-                              // If 4 or fewer slides, only use flex mode on desktop
-                              const isMobile = window.innerWidth <= 768;
-                              
-                              if (slideCount <= 4 && !isMobile) {
-                                  // Desktop: Remove swiper classes and show slides normally
-                                  swiperEl.classList.remove('swiper-initialized');
-                                  swiperEl.classList.add('swiper-flex-mode');
-                                  wrapperEl.style.display = '';
-                                  wrapperEl.style.gap = '20px';
-                                  
-                                                                                                          // Preserve original slide styling by removing Swiper's inline styles
-                                    const slides = wrapperEl.querySelectorAll('.swiper-slide');
-                                    slides.forEach(slide => {
-                                        // Calculate width based on slide count
-                                        const slideWidth = slideCount === 3 ? 'calc(33.333% - 15px)' : 'calc(25% - 15px)';
-                                        slide.style.width = slideWidth;
-                                        slide.style.flexShrink = '0';
-                                        slide.style.flexGrow = '0';
-                                        slide.style.flexBasis = 'auto';
-                                    });
-                                  
-                                  // Hide navigation and scrollbar elements
-                                  const navElements = swiperEl.querySelectorAll('.swiper-next, .swiper-prev, .swiper-scrollbar, .slider_arrow');
-                                  navElements.forEach(el => el.style.display = 'none');
-                                  
-                                                                       // Also hide the pagination container if it exists
-                                   const parentContainer = swiperEl.closest('[data-swiper="best-sellers"], [data-swiper="category"], [data-swiper="tanning"], [data-swiper="offers"]');
-                                  if (parentContainer) {
-                                      const paginationContainer = parentContainer.querySelector('.swiper-pagination_elements');
-                                      if (paginationContainer) {
-                                          paginationContainer.style.display = 'none';
-                                      }
-                                  }
-                                  
-                                  // Mark as ready and show (only for restored pages)
-                                  if (isPageRestored) {
-                                      swiperEl.classList.add('swiper-ready');
-                                  }
-                                  
-
-                                                              } else {
-                                  // Mobile OR more than 4 slides: Initialize swiper normally
-                                                  const swiper = new Swiper(swiperEl, config.options);
-              
-              // Ensure easing is properly applied after initialization
-              if (swiper.params && swiper.params.easing) {
-                  swiper.params.easing = getOptimizedEasing(swiperEl);
-              }
-                                  
-                                  // Force update to ensure easing is applied
-                                  swiper.update();
-                                  swiper.updateSlides();
-                                  swiper.updateProgress();
-                                  
-                                  // Show the slides after initialization
-                                  swiperEl.classList.add('swiper-initialized');
-                                  
-                                  // Show navigation and scrollbar elements
-                                  const navElements = swiperEl.querySelectorAll('.swiper-next, .swiper-prev, .swiper-scrollbar, .slider_arrow');
-                                  navElements.forEach(el => el.style.display = '');
-                                  
-                                                                       // Also show the pagination container if it exists
-                                   const parentContainer = swiperEl.closest('[data-swiper="best-sellers"], [data-swiper="category"], [data-swiper="tanning"], [data-swiper="offers"]');
-                                  if (parentContainer) {
-                                      const paginationContainer = parentContainer.querySelector('.swiper-pagination_elements');
-                                      if (paginationContainer) {
-                                          paginationContainer.style.display = '';
-                                      }
-                                  }
-                                  
-                                  // Mark as ready and show (only for restored pages)
-                                  if (isPageRestored) {
-                                      swiperEl.classList.add('swiper-ready');
-                                  }
-                                  
-
-                              }
-                              
-                              // Cache the new state
-                              swiperCache.set(cacheKey, {
-                                  slideCount: slideCount,
-                                  timestamp: Date.now(),
-                                  config: config.selector
-                              });
-                          }
-                      } else if (swiperEl.swiper) {
-                          // Just update existing instance
-                          swiperEl.swiper.update();
-                          swiperEl.classList.add('swiper-initialized');
-                          // Only add ready class for restored pages
-                          if (isPageRestored) {
-                              swiperEl.classList.add('swiper-ready');
-                          }
-
-                      }
-                  } catch (error) {
-                      console.error(`Error initializing/updating Swiper for ${config.selector}:`, error);
-                      // Mark as ready even if there's an error to prevent permanent hiding (only for restored pages)
-                      if (isPageRestored) {
-                          swiperEl.classList.add('swiper-ready');
-                      }
-                  }
-              };
-              
-              // Run once immediately in case slides are already there
-              initOrUpdateSwiper();
-
-              // Create an observer to watch for slides being added later
-              const observer = new MutationObserver((mutations) => {
-                  // We only need to know that a change happened, not which one.
-                  // A simple re-run of our logic is enough.
-                  initOrUpdateSwiper();
-                  
-                  // Optional: once initialized, we might not need to observe anymore
-                  // if the slide content is static after the first load.
-                  // if (swiperEl.swiper) {
-                  //   observer.disconnect();
-                  // }
-              });
-
-              // Start observing the swiper-wrapper for new child elements
-              observer.observe(wrapperEl, { childList: true });
-
-              // Store observer reference for potential cleanup
-              swiperEl._swiperObserver = observer;
-          });
-      });
-      
-      // Remove restored class after initialization
-      if (isPageRestored) {
-          setTimeout(() => {
-              document.body.classList.remove('swiper-restored');
-              isPageRestored = false;
-          }, 1000);
-      }
-      
-      // Reset initialization flag
-      isInitializing = false;
-  }
-
-  /**
-   * Finds all existing Swiper instances and calls their update() method.
-   * This is still needed for the back/forward cache.
-   */
-  function updateAllSwipersOnPageShow() {
-      swiperConfigurations.forEach(config => {
-          const swiperElements = cachedQuerySelector(config.selector);
-          swiperElements.forEach(element => {
-              if (element.swiper) {
-                  try {
-                      // Force update to restore proper state
-                      element.swiper.update();
-                      
-                      // Re-enable easing by re-applying the easing configuration
-                      if (element.swiper.params && element.swiper.params.easing) {
-                          element.swiper.params.easing = config.options.easing;
-                      }
-                      
-                      // Force a small update to ensure easing is applied
-                      element.swiper.updateSlides();
-                      element.swiper.updateProgress();
-                      
-                      // Ensure cached state is maintained
-                      const cacheKey = `${config.selector}-${element.dataset.swiperId || element.id || element.className}`;
-                      const cachedData = swiperCache.get(cacheKey);
-                      if (cachedData) {
-                          cachedData.timestamp = Date.now();
-                      }
-                      
-
-                  } catch (error) {
-                      console.error(`Error updating Swiper for ${config.selector}:`, error);
-                  }
-              }
-          });
-      });
-  }
-
-  /**
-   * Cleanup function to disconnect observers and destroy Swiper instances
-   */
-  function cleanupSwipers() {
-      swiperConfigurations.forEach(config => {
-          const swiperElements = cachedQuerySelector(config.selector);
-          swiperElements.forEach(element => {
-              // Disconnect observer if it exists
-              if (element._swiperObserver) {
-                  element._swiperObserver.disconnect();
-                  delete element._swiperObserver;
-              }
-              
-              // Destroy Swiper instance if it exists
-              if (element.swiper) {
-                  try {
-                      element.swiper.destroy(true, true);
-                  } catch (error) {
-                      console.error(`Error destroying Swiper for ${config.selector}:`, error);
-                  }
-              }
-          });
-      });
-      
-      // Clear the cache
-      swiperCache.clear();
-      clearDomCache();
+    /**
+     * Debounce utility function
+     * @param {Function} func - Function to debounce
+     * @param {number} wait - Wait time in milliseconds
+     * @returns {Function}
+     */
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
     }
 
-  // 3. EVENT LISTENERS
-  // -------------------------------------------------------------------
-  
-  // Run the main setup when the DOM is ready.
-  document.addEventListener('DOMContentLoaded', setupSwipers);
-  
-  // Also run on window load to catch any late-loading content
-  window.addEventListener('load', () => {
-      // Small delay to ensure all content is loaded
-      setTimeout(setupSwipers, 100);
-  });
+    /**
+     * Safe error logging with environment detection
+     * @param {string} message - Error message
+     * @param {Error} error - Error object
+     * @param {string} context - Context where error occurred
+     */
+    function logError(message, error = null, context = '') {
+        const isDevelopment = window.location.hostname === 'localhost' || 
+                             window.location.hostname === '127.0.0.1' ||
+                             window.location.protocol === 'file:';
+        
+        if (isDevelopment) {
+            console.error(`[Swiper Initializer${context ? ` - ${context}` : ''}]`, message, error);
+        } else {
+            // In production, log to external service or use a more sophisticated logging system
+            console.warn(`[Swiper Initializer] ${message}`);
+            
+            // Example: Send to error tracking service
+            // if (window.Sentry) {
+            //     window.Sentry.captureException(error || new Error(message));
+            // }
+        }
+    }
 
-  // Handle mobile browser back/forward cache restores.
-  window.addEventListener('pageshow', (event) => {
-      if (event.persisted) {
+    // ===================================================================
+    // CACHE MANAGEMENT
+    // ===================================================================
+    
+    const CacheManager = {
+        swiperCache: new Map(),
+        domCache: new Map(),
+        isPageRestored: false,
+        isInitializing: false,
 
-          
-          // Set flag for restored page
-          isPageRestored = true;
-          
-          // Clear cache and re-run setup to ensure proper initialization
-          swiperCache.clear();
-          clearDomCache();
-          
-          // Temporarily disable all transitions to prevent clunky animations
-          const allWrappers = document.querySelectorAll('.swiper-wrapper');
-          allWrappers.forEach(wrapper => {
-              wrapper.style.transition = 'none';
-          });
-          
-          // Small delay to ensure DOM is ready
-          setTimeout(() => {
-              setupSwipers();
-              // Additional easing restoration after setup
-              setTimeout(() => {
-                  swiperConfigurations.forEach(config => {
-                      const swiperElements = cachedQuerySelector(config.selector);
-                      swiperElements.forEach(element => {
-                          if (element.swiper) {
-                              try {
-                                  // Force update to restore proper state
-                                  element.swiper.update();
-                                  
-                                  // Re-enable easing by re-applying the easing configuration
-                                  if (element.swiper.params && element.swiper.params.easing) {
-                                      element.swiper.params.easing = config.options.easing;
-                                  }
-                                  
-                                  // Force a small update to ensure easing is applied
-                                  element.swiper.updateSlides();
-                                  element.swiper.updateProgress();
-                                  
+        /**
+         * Cached DOM query function
+         * @param {string} selector - CSS selector
+         * @returns {NodeList}
+         */
+        cachedQuerySelector(selector) {
+            if (!this.domCache.has(selector)) {
+                this.domCache.set(selector, document.querySelectorAll(selector));
+            }
+            return this.domCache.get(selector);
+        },
 
-                              } catch (error) {
-                                  console.error(`Error restoring Swiper from bfcache for ${config.selector}:`, error);
-                              }
-                          }
-                      });
-                  });
-                  
-                  // Re-enable transitions after everything is set up
-                  setTimeout(() => {
-                      allWrappers.forEach(wrapper => {
-                          wrapper.style.transition = '';
-                      });
-                  }, 100);
-              }, 100);
-          }, 50);
-      }
-  });
-  
-  // Handle visibility change (when user returns to tab)
-  document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-          // When user returns to the tab, restore Swiper functionality
-          setTimeout(() => {
-              swiperConfigurations.forEach(config => {
-                  const swiperElements = cachedQuerySelector(config.selector);
-                  swiperElements.forEach(element => {
-                      if (element.swiper) {
-                          try {
-                              // Force update to restore proper state
-                              element.swiper.update();
-                              
-                              // Re-enable easing by re-applying the easing configuration
-                              if (element.swiper.params && element.swiper.params.easing) {
-                                  element.swiper.params.easing = config.options.easing;
-                              }
-                              
-                              // Force a small update to ensure easing is applied
-                              element.swiper.updateSlides();
-                              element.swiper.updateProgress();
-                              
+        /**
+         * Clear DOM cache
+         */
+        clearDomCache() {
+            this.domCache.clear();
+        },
 
-                          } catch (error) {
-                              console.error(`Error restoring Swiper for ${config.selector}:`, error);
-                          }
-                      }
-                  });
-              });
-          }, 100);
-      } else {
-          // When page becomes hidden, pause any ongoing animations
-          swiperConfigurations.forEach(config => {
-              const swiperElements = cachedQuerySelector(config.selector);
-              swiperElements.forEach(element => {
-                  if (element.swiper && element.swiper.animating) {
-                      try {
-                          element.swiper.stopAutoplay();
-                      } catch (error) {
-                          // Ignore errors when stopping autoplay
-                      }
-                  }
-              });
-          });
-      }
-  });
-  
-  // Additional safeguard for window focus events
-  window.addEventListener('focus', () => {
-      // When window regains focus, ensure Swiper easing is working
-      setTimeout(() => {
-          swiperConfigurations.forEach(config => {
-              const swiperElements = cachedQuerySelector(config.selector);
-              swiperElements.forEach(element => {
-                  if (element.swiper) {
-                      try {
-                          // Re-apply easing configuration
-                          if (element.swiper.params && element.swiper.params.easing) {
-                              element.swiper.params.easing = config.options.easing;
-                          }
-                          element.swiper.update();
-                      } catch (error) {
-                          console.error(`Error restoring Swiper on focus for ${config.selector}:`, error);
-                      }
-                  }
-              });
-          });
-      }, 50);
-  });
-  
-  // Handle browser back/forward button presses
-  window.addEventListener('popstate', () => {
-      // When user presses back/forward button, restore Swiper easing
-      // Use a longer delay to ensure DOM is fully restored
-      setTimeout(() => {
-          swiperConfigurations.forEach(config => {
-              const swiperElements = cachedQuerySelector(config.selector);
-              swiperElements.forEach(element => {
-                  if (element.swiper) {
-                      try {
-                          // Temporarily disable transitions to prevent clunky animations
-                          const wrapper = element.querySelector('.swiper-wrapper');
-                          if (wrapper) {
-                              wrapper.style.transition = 'none';
-                          }
-                          
-                          // Force update to restore proper state
-                          element.swiper.update();
-                          
-                          // Re-enable easing by re-applying the easing configuration
-                          if (element.swiper.params && element.swiper.params.easing) {
-                              element.swiper.params.easing = config.options.easing;
-                          }
-                          
-                          // Force a small update to ensure easing is applied
-                          element.swiper.updateSlides();
-                          element.swiper.updateProgress();
-                          
-                          // Re-enable transitions with a small delay
-                          setTimeout(() => {
-                              if (wrapper) {
-                                  wrapper.style.transition = '';
-                              }
-                          }, 50);
-                          
+        /**
+         * Clear all caches
+         */
+        clearAll() {
+            this.swiperCache.clear();
+            this.domCache.clear();
+        },
 
-                      } catch (error) {
-                          console.error(`Error restoring Swiper after popstate for ${config.selector}:`, error);
-                      }
-                  }
-              });
-          });
-      }, 150);
-  });
-  
-  // Additional handler for back button specifically (for better Chrome compatibility)
-  let isBackButtonPressed = false;
-  
-  // Reset the flag when page loads
-  window.addEventListener('load', () => {
-      isBackButtonPressed = false;
-  });
-  
-  // Enhanced pageshow handler for back button
-  window.addEventListener('pageshow', (event) => {
-      if (event.persisted || isBackButtonPressed) {
+        /**
+         * Generate cache key for swiper element
+         * @param {string} selector - Swiper selector
+         * @param {HTMLElement} element - Swiper element
+         * @returns {string}
+         */
+        generateCacheKey(selector, element) {
+            return `${selector}-${element.dataset.swiperId || element.id || element.className}`;
+        }
+    };
 
-          
-          // Set flag for restored page
-          isPageRestored = true;
-          
-          // Temporarily disable all transitions
-          const allWrappers = document.querySelectorAll('.swiper-wrapper');
-          allWrappers.forEach(wrapper => {
-              wrapper.style.transition = 'none';
-          });
-          
-          // Clear cache and re-run setup
-          swiperCache.clear();
-          clearDomCache();
-          
-          setTimeout(() => {
-              setupSwipers();
-              
-              // Restore easing with optimized timing
-              setTimeout(() => {
-                  swiperConfigurations.forEach(config => {
-                      const swiperElements = cachedQuerySelector(config.selector);
-                      swiperElements.forEach(element => {
-                          if (element.swiper) {
-                              try {
-                                  // Ensure easing is properly applied
-                                  if (element.swiper.params && element.swiper.params.easing) {
-                                      element.swiper.params.easing = config.options.easing;
-                                  }
-                                  
-                                  // Update swiper state
-                                  element.swiper.update();
-                                  element.swiper.updateSlides();
-                                  element.swiper.updateProgress();
-                                  
+    // ===================================================================
+    // STYLE MANAGEMENT
+    // ===================================================================
+    
+    const StyleManager = {
+        /**
+         * Inject required CSS styles
+         */
+        injectStyles() {
+            if (document.getElementById('swiper-hide-styles')) {
+                return; // Styles already injected
+            }
 
-                              } catch (error) {
-                                  console.error(`Error optimizing Swiper after back button for ${config.selector}:`, error);
-                              }
-                          }
-                      });
-                  });
-                  
-                  // Re-enable transitions with smooth timing
-                  setTimeout(() => {
-                      allWrappers.forEach(wrapper => {
-                          wrapper.style.transition = '';
-                      });
-                      isBackButtonPressed = false;
-                  }, 200);
-              }, 150);
-          }, 100);
-      }
-  });
+            const style = document.createElement('style');
+            style.id = 'swiper-hide-styles';
+            style.textContent = `
+                /* Swiper visibility management */
+                .swiper-restored .swiper:not(.swiper-ready) {
+                    opacity: 0 !important;
+                    visibility: hidden !important;
+                    transition: opacity 0.3s ease, visibility 0.3s ease;
+                }
+                
+                .swiper-restored .swiper.swiper-ready {
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                }
+                
+                .swiper-js-loaded:not(.swiper-restored) .swiper {
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                }
+                
+                .swiper-js-loaded .swiper:not(.swiper-initialized):not(.swiper-flex-mode) .swiper-wrapper {
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                }
+                
+                .swiper-js-loaded .swiper.swiper-initialized .swiper-wrapper,
+                .swiper-js-loaded .swiper.swiper-flex-mode .swiper-wrapper {
+                    opacity: 1;
+                }
+                
+                /* Performance optimizations */
+                .swiper-low-end-device .swiper-wrapper {
+                    will-change: auto;
+                }
+                
+                .swiper-low-end-device .swiper-slide {
+                    will-change: auto;
+                }
+                
+                /* Smooth transitions */
+                .swiper-restored .swiper-wrapper {
+                    transition: opacity 0.5s ease-in-out !important;
+                }
+                
+                /* Prevent flash during transitions */
+                .swiper {
+                    min-height: 200px;
+                    transition: opacity 0.3s ease;
+                }
+                
+                /* Loading states */
+                .swiper-loading {
+                    opacity: 0.7;
+                    transition: opacity 0.3s ease;
+                }
+                
+                .swiper-loaded {
+                    opacity: 1;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    };
 
-  // Cleanup on page unload to prevent memory leaks and detect back button
-  window.addEventListener('beforeunload', () => {
-      isBackButtonPressed = true;
-      cleanupSwipers();
-  });
-  
-  // Debounced resize handler for better performance
-  const debouncedResizeHandler = debounce(() => {
-      // Clear DOM cache on resize
-      clearDomCache();
-      
-      // Re-run setup for flex mode swipers to update mobile sizing
-      swiperConfigurations.forEach(config => {
-          const swiperElements = cachedQuerySelector(config.selector);
-          swiperElements.forEach(swiperEl => {
-              if (swiperEl.classList.contains('swiper-flex-mode')) {
-                  const wrapperEl = swiperEl.querySelector('.swiper-wrapper');
-                  if (wrapperEl) {
-                      const slideCount = wrapperEl.querySelectorAll('.swiper-slide').length;
-                      const isMobile = window.innerWidth <= 992;
-                      
-                      // If switching to mobile, reinitialize as Swiper
-                      if (isMobile) {
-                          // Remove flex mode and initialize Swiper
-                          swiperEl.classList.remove('swiper-flex-mode');
-                          const swiper = new Swiper(swiperEl, config.options);
-                          swiperEl.classList.add('swiper-initialized');
-                          
-                          // Show navigation elements
-                          const navElements = swiperEl.querySelectorAll('.swiper-next, .swiper-prev, .swiper-scrollbar, .slider_arrow');
-                          navElements.forEach(el => el.style.display = '');
-                          
-                          const parentContainer = swiperEl.closest('[data-swiper="best-sellers"], [data-swiper="category"], [data-swiper="offers"]');
-                          if (parentContainer) {
-                              const paginationContainer = parentContainer.querySelector('.swiper-pagination_elements');
-                              if (paginationContainer) {
-                                  paginationContainer.style.display = '';
-                              }
-                          }
-                                               } else {
-                                                      // Desktop: update slide widths
+    // ===================================================================
+    // SWIPER MANAGEMENT
+    // ===================================================================
+    
+    const SwiperManager = {
+        /**
+         * Initialize or update a single swiper
+         * @param {Object} config - Swiper configuration
+         * @param {HTMLElement} swiperEl - Swiper element
+         */
+        initOrUpdateSwiper(config, swiperEl) {
+            try {
+                const wrapperEl = swiperEl.querySelector('.swiper-wrapper');
+                if (!wrapperEl) {
+                    logError(`${CONFIG.ERRORS.NO_WRAPPER} ${config.selector}`, null, 'Initialization');
+                    return;
+                }
+
+                const cacheKey = CacheManager.generateCacheKey(config.selector, swiperEl);
+                const cachedData = CacheManager.swiperCache.get(cacheKey);
+                const slideCount = wrapperEl.querySelectorAll('.swiper-slide').length;
+                
+                const needsReinit = !cachedData || 
+                                   cachedData.slideCount !== slideCount ||
+                                   !swiperEl.swiper;
+                
+                if (needsReinit) {
+                    this.destroySwiper(swiperEl);
+                    
+                    if (slideCount > 0) {
+                        this.initializeSwiper(config, swiperEl, wrapperEl, slideCount);
+                        
+                        // Cache the new state
+                        CacheManager.swiperCache.set(cacheKey, {
+                            slideCount: slideCount,
+                            timestamp: Date.now(),
+                            config: config.selector
+                        });
+                    }
+                } else if (swiperEl.swiper) {
+                    this.updateSwiper(swiperEl);
+                }
+            } catch (error) {
+                logError(`${CONFIG.ERRORS.INITIALIZATION_FAILED} ${config.selector}`, error, 'Initialization');
+                this.markAsReady(swiperEl);
+            }
+        },
+
+        /**
+         * Initialize a new swiper instance
+         * @param {Object} config - Swiper configuration
+         * @param {HTMLElement} swiperEl - Swiper element
+         * @param {HTMLElement} wrapperEl - Wrapper element
+         * @param {number} slideCount - Number of slides
+         */
+        initializeSwiper(config, swiperEl, wrapperEl, slideCount) {
+            const isMobile = window.innerWidth <= CONFIG.BREAKPOINTS.DESKTOP;
+            
+            if (slideCount <= 4 && !isMobile) {
+                this.setupFlexMode(swiperEl, wrapperEl, slideCount);
+            } else {
+                this.setupSwiperMode(config, swiperEl);
+            }
+        },
+
+        /**
+         * Setup flex mode for desktop with few slides
+         * @param {HTMLElement} swiperEl - Swiper element
+         * @param {HTMLElement} wrapperEl - Wrapper element
+         * @param {number} slideCount - Number of slides
+         */
+        setupFlexMode(swiperEl, wrapperEl, slideCount) {
+            swiperEl.classList.remove('swiper-initialized');
+            swiperEl.classList.add('swiper-flex-mode');
+            
+            wrapperEl.style.display = '';
+            wrapperEl.style.gap = '20px';
+            
+            // Set slide widths
+            const slides = wrapperEl.querySelectorAll('.swiper-slide');
+            const slideWidth = slideCount === 3 ? 'calc(33.333% - 15px)' : 'calc(25% - 15px)';
+            
+            slides.forEach(slide => {
+                slide.style.width = slideWidth;
+                slide.style.flexShrink = '0';
+                slide.style.flexGrow = '0';
+                slide.style.flexBasis = 'auto';
+            });
+            
+            // Hide navigation elements
+            this.toggleNavigationElements(swiperEl, false);
+            
+            this.markAsReady(swiperEl);
+        },
+
+        /**
+         * Setup swiper mode with Swiper.js
+         * @param {Object} config - Swiper configuration
+         * @param {HTMLElement} swiperEl - Swiper element
+         */
+        setupSwiperMode(config, swiperEl) {
+            const options = {
+                ...config.options,
+                speed: PerformanceUtils.getOptimizedSpeed(),
+                easing: PerformanceUtils.getOptimizedEasing(swiperEl)
+            };
+            
+            const swiper = new Swiper(swiperEl, options);
+            
+            // Force updates to ensure proper initialization
+            swiper.update();
+            swiper.updateSlides();
+            swiper.updateProgress();
+            
+            swiperEl.classList.add('swiper-initialized');
+            this.toggleNavigationElements(swiperEl, true);
+            this.markAsReady(swiperEl);
+        },
+
+        /**
+         * Toggle navigation elements visibility
+         * @param {HTMLElement} swiperEl - Swiper element
+         * @param {boolean} show - Whether to show or hide elements
+         */
+        toggleNavigationElements(swiperEl, show) {
+            const navElements = swiperEl.querySelectorAll('.swiper-next, .swiper-prev, .swiper-scrollbar, .slider_arrow');
+            navElements.forEach(el => {
+                el.style.display = show ? '' : 'none';
+            });
+            
+            const parentContainer = swiperEl.closest('[data-swiper]');
+            if (parentContainer) {
+                const paginationContainer = parentContainer.querySelector('.swiper-pagination_elements');
+                if (paginationContainer) {
+                    paginationContainer.style.display = show ? '' : 'none';
+                }
+            }
+        },
+
+        /**
+         * Mark swiper as ready
+         * @param {HTMLElement} swiperEl - Swiper element
+         */
+        markAsReady(swiperEl) {
+            if (CacheManager.isPageRestored) {
+                swiperEl.classList.add('swiper-ready');
+            }
+        },
+
+        /**
+         * Update existing swiper
+         * @param {HTMLElement} swiperEl - Swiper element
+         */
+        updateSwiper(swiperEl) {
+            try {
+                swiperEl.swiper.update();
+                swiperEl.classList.add('swiper-initialized');
+                this.markAsReady(swiperEl);
+            } catch (error) {
+                logError(`${CONFIG.ERRORS.UPDATE_FAILED} ${swiperEl.className}`, error, 'Update');
+            }
+        },
+
+        /**
+         * Destroy swiper instance
+         * @param {HTMLElement} swiperEl - Swiper element
+         */
+        destroySwiper(swiperEl) {
+            if (swiperEl.swiper) {
+                try {
+                    swiperEl.swiper.destroy(true, true);
+                } catch (error) {
+                    logError(`${CONFIG.ERRORS.DESTROY_FAILED} ${swiperEl.className}`, error, 'Destroy');
+                }
+            }
+        },
+
+        /**
+         * Update all swipers on page show
+         */
+        updateAllSwipers() {
+            CONFIG.SWIPER_CONFIGS.forEach(config => {
+                const swiperElements = CacheManager.cachedQuerySelector(config.selector);
+                swiperElements.forEach(element => {
+                    if (element.swiper) {
+                        try {
+                            element.swiper.update();
+                            
+                            if (element.swiper.params && element.swiper.params.easing) {
+                                element.swiper.params.easing = config.options.easing;
+                            }
+                            
+                            element.swiper.updateSlides();
+                            element.swiper.updateProgress();
+                            
+                            const cacheKey = CacheManager.generateCacheKey(config.selector, element);
+                            const cachedData = CacheManager.swiperCache.get(cacheKey);
+                            if (cachedData) {
+                                cachedData.timestamp = Date.now();
+                            }
+                        } catch (error) {
+                            logError(`${CONFIG.ERRORS.UPDATE_FAILED} ${config.selector}`, error, 'Update All');
+                        }
+                    }
+                });
+            });
+        },
+
+        /**
+         * Cleanup all swipers
+         */
+        cleanup() {
+            CONFIG.SWIPER_CONFIGS.forEach(config => {
+                const swiperElements = CacheManager.cachedQuerySelector(config.selector);
+                swiperElements.forEach(element => {
+                    if (element._swiperObserver) {
+                        element._swiperObserver.disconnect();
+                        delete element._swiperObserver;
+                    }
+                    
+                    this.destroySwiper(element);
+                });
+            });
+            
+            CacheManager.clearAll();
+        }
+    };
+
+    // ===================================================================
+    // MAIN INITIALIZATION FUNCTION
+    // ===================================================================
+    
+    function setupSwipers() {
+        // Check if Swiper is available
+        if (typeof Swiper === 'undefined') {
+            logError(CONFIG.ERRORS.SWIPER_NOT_LOADED, null, 'Setup');
+            return;
+        }
+        
+        // Prevent multiple simultaneous initializations
+        if (CacheManager.isInitializing) {
+            return;
+        }
+        
+        CacheManager.isInitializing = true;
+        
+        try {
+            // Add body classes
+            document.body.classList.add('swiper-js-loaded');
+            
+            if (PerformanceUtils.isLowEndDevice()) {
+                document.body.classList.add('swiper-low-end-device');
+            }
+            
+            if (CacheManager.isPageRestored) {
+                document.body.classList.add('swiper-restored');
+            }
+            
+            // Inject styles
+            StyleManager.injectStyles();
+            
+            // Handle restored pages
+            if (CacheManager.isPageRestored) {
+                const allSwipers = document.querySelectorAll('.swiper');
+                allSwipers.forEach(swiperEl => {
+                    swiperEl.classList.remove('swiper-ready');
+                    const wrapperEl = swiperEl.querySelector('.swiper-wrapper');
+                    if (wrapperEl) {
+                        wrapperEl.style.opacity = '1';
+                        wrapperEl.style.transition = 'opacity 0.5s ease-in-out';
+                    }
+                });
+            }
+            
+            // Initialize all swipers
+            CONFIG.SWIPER_CONFIGS.forEach(config => {
+                const swiperElements = CacheManager.cachedQuerySelector(config.selector);
+                
+                if (swiperElements.length === 0) {
+                    return;
+                }
+                
+                swiperElements.forEach(swiperEl => {
+                    const wrapperEl = swiperEl.querySelector('.swiper-wrapper');
+                    if (!wrapperEl) {
+                        return;
+                    }
+                    
+                    // Initialize swiper
+                    SwiperManager.initOrUpdateSwiper(config, swiperEl);
+                    
+                    // Set up mutation observer
+                    const observer = new MutationObserver(() => {
+                        SwiperManager.initOrUpdateSwiper(config, swiperEl);
+                    });
+                    
+                    observer.observe(wrapperEl, { childList: true });
+                    swiperEl._swiperObserver = observer;
+                });
+            });
+            
+            // Remove restored class after initialization
+            if (CacheManager.isPageRestored) {
+                setTimeout(() => {
+                    document.body.classList.remove('swiper-restored');
+                    CacheManager.isPageRestored = false;
+                }, 1000);
+            }
+            
+        } catch (error) {
+            logError('Failed to setup swipers', error, 'Setup');
+        } finally {
+            CacheManager.isInitializing = false;
+        }
+    }
+
+    // ===================================================================
+    // EVENT HANDLERS
+    // ===================================================================
+    
+    // Debounced resize handler
+    const debouncedResizeHandler = debounce(() => {
+        CacheManager.clearDomCache();
+        
+        CONFIG.SWIPER_CONFIGS.forEach(config => {
+            const swiperElements = CacheManager.cachedQuerySelector(config.selector);
+            swiperElements.forEach(swiperEl => {
+                if (swiperEl.classList.contains('swiper-flex-mode')) {
+                    const wrapperEl = swiperEl.querySelector('.swiper-wrapper');
+                    if (wrapperEl) {
+                        const slideCount = wrapperEl.querySelectorAll('.swiper-slide').length;
+                        const isMobile = window.innerWidth <= CONFIG.BREAKPOINTS.DESKTOP;
+                        
+                        if (isMobile) {
+                            // Switch to swiper mode on mobile
+                            swiperEl.classList.remove('swiper-flex-mode');
+                            SwiperManager.setupSwiperMode(config, swiperEl);
+                        } else {
+                            // Update flex mode on desktop
                             const slides = wrapperEl.querySelectorAll('.swiper-slide');
+                            const slideWidth = slideCount === 3 ? 'calc(33.333% - 15px)' : 'calc(25% - 15px)';
                             slides.forEach(slide => {
-                                // Calculate width based on slide count
-                                const slideWidth = slideCount === 3 ? 'calc(33.333% - 15px)' : 'calc(25% - 15px)';
                                 slide.style.width = slideWidth;
                                 slide.style.flexShrink = '0';
                                 slide.style.flexGrow = '0';
                                 slide.style.flexBasis = 'auto';
                             });
-                       }
-                  }
-              }
-          });
-      });
-  }, 250); // 250ms debounce delay
-  
-  // Handle window resize for responsive slide sizing
-  window.addEventListener('resize', debouncedResizeHandler);
+                        }
+                    }
+                }
+            });
+        });
+    }, CONFIG.DEBOUNCE_DELAY);
+
+    // ===================================================================
+    // EVENT LISTENERS
+    // ===================================================================
+    
+    // DOM ready
+    document.addEventListener('DOMContentLoaded', setupSwipers);
+    
+    // Window load
+    window.addEventListener('load', () => {
+        setTimeout(setupSwipers, 100);
+    });
+    
+    // Page show (back/forward cache)
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+            CacheManager.isPageRestored = true;
+            CacheManager.clearAll();
+            
+            const allWrappers = document.querySelectorAll('.swiper-wrapper');
+            allWrappers.forEach(wrapper => {
+                wrapper.style.transition = 'none';
+            });
+            
+            setTimeout(() => {
+                setupSwipers();
+                setTimeout(() => {
+                    SwiperManager.updateAllSwipers();
+                    setTimeout(() => {
+                        allWrappers.forEach(wrapper => {
+                            wrapper.style.transition = '';
+                        });
+                    }, 100);
+                }, 100);
+            }, 50);
+        }
+    });
+    
+    // Visibility change
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            setTimeout(() => {
+                SwiperManager.updateAllSwipers();
+            }, 100);
+        } else {
+            // Pause animations when page is hidden
+            CONFIG.SWIPER_CONFIGS.forEach(config => {
+                const swiperElements = CacheManager.cachedQuerySelector(config.selector);
+                swiperElements.forEach(element => {
+                    if (element.swiper && element.swiper.animating) {
+                        try {
+                            element.swiper.stopAutoplay();
+                        } catch (error) {
+                            // Ignore autoplay stop errors
+                        }
+                    }
+                });
+            });
+        }
+    });
+    
+    // Window focus
+    window.addEventListener('focus', () => {
+        setTimeout(() => {
+            SwiperManager.updateAllSwipers();
+        }, 50);
+    });
+    
+    // Popstate (back/forward navigation)
+    window.addEventListener('popstate', () => {
+        setTimeout(() => {
+            CONFIG.SWIPER_CONFIGS.forEach(config => {
+                const swiperElements = CacheManager.cachedQuerySelector(config.selector);
+                swiperElements.forEach(element => {
+                    if (element.swiper) {
+                        try {
+                            const wrapper = element.querySelector('.swiper-wrapper');
+                            if (wrapper) {
+                                wrapper.style.transition = 'none';
+                            }
+                            
+                            element.swiper.update();
+                            
+                            if (element.swiper.params && element.swiper.params.easing) {
+                                element.swiper.params.easing = config.options.easing;
+                            }
+                            
+                            element.swiper.updateSlides();
+                            element.swiper.updateProgress();
+                            
+                            setTimeout(() => {
+                                if (wrapper) {
+                                    wrapper.style.transition = '';
+                                }
+                            }, 50);
+                        } catch (error) {
+                            logError(`Error restoring Swiper after popstate for ${config.selector}`, error, 'Popstate');
+                        }
+                    }
+                });
+            });
+        }, 150);
+    });
+    
+    // Before unload
+    window.addEventListener('beforeunload', () => {
+        SwiperManager.cleanup();
+    });
+    
+    // Resize
+    window.addEventListener('resize', debouncedResizeHandler);
+
+    // ===================================================================
+    // PUBLIC API (for external access if needed)
+    // ===================================================================
+    
+    // Expose public methods for external use
+    window.SwiperInitializer = {
+        setup: setupSwipers,
+        update: SwiperManager.updateAllSwipers,
+        cleanup: SwiperManager.cleanup,
+        isLowEndDevice: PerformanceUtils.isLowEndDevice,
+        config: CONFIG
+    };
 
 })(); 
