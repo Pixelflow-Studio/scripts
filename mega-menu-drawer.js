@@ -1,31 +1,142 @@
-document.addEventListener("DOMContentLoaded", () => {
-    // --- 1. ELEMENT SELECTION & CACHING ---
-    const sidebarComponent = document.querySelector('[data-menu="component"]');
-    const backdrop = document.querySelector('[data-menu="backdrop"]');
-    const mainSidebar = document.querySelector('[data-menu="main-panel"]');
-    const contentToSlide = document.querySelector('[data-menu="content-to-slide"]');
+(function() {
+    'use strict';
     
-    // Early return if critical elements are missing
-    if (!sidebarComponent || !mainSidebar || !contentToSlide) {
-        console.error("Mega Menu Error: Critical data-attribute targets are missing.");
+    // Check if already initialized to prevent duplicate execution
+    if (window.megaMenuInitialized) {
         return;
     }
     
-    // Cache all nav links and filter primary links
-    const allNavLinks = contentToSlide.querySelectorAll('.mega-menu-nav-link');
-    const primaryNavLinks = Array.from(allNavLinks).filter(link => !link.closest('[data-menu="sub-panel"]'));
+    // ============================================================================
+    // CONFIGURATION - Easy to customize for other developers
+    // ============================================================================
+    const CONFIG = {
+        // CSS Selectors - Update these to match your HTML structure
+        selectors: {
+            component: '[data-menu="component"]',
+            backdrop: '[data-menu="backdrop"]',
+            mainPanel: '[data-menu="main-panel"]',
+            contentToSlide: '[data-menu="content-to-slide"]',
+            open: '[data-menu="open"]',
+            close: '[data-menu="close"]',
+            openSub: '[data-menu="open-sub"]',
+            back: '[data-menu="back"]',
+            subPanel: '[data-menu="sub-panel"]',
+            navLinks: '.mega-menu-nav-link'
+        },
+        
+        // Animation settings
+        animation: {
+            duration: 0.4,
+            ease: 'power2.out',
+            closeEase: 'power2.in',
+            stagger: 0.05,
+            navLinkDelay: 0.2
+        },
+        
+        // Performance settings
+        performance: {
+            debounceDelay: 150,
+            maxInitAttempts: 10,
+            initRetryInterval: 500,
+            flashPreventionDelay: 100
+        }
+    };
     
-    if (primaryNavLinks.length === 0) {
-        console.error("Mega Menu Error: No primary navigation links found.");
-        return;
-    }
+    // ============================================================================
+    // PERFORMANCE OPTIMIZATIONS
+    // ============================================================================
+    
+    // Cache DOM queries
+    const domCache = {
+        elements: new Map(),
+        get: function(selector) {
+            if (!this.elements.has(selector)) {
+                this.elements.set(selector, document.querySelector(selector));
+            }
+            return this.elements.get(selector);
+        },
+        getAll: function(selector) {
+            const cacheKey = selector + '_all';
+            if (!this.elements.has(cacheKey)) {
+                this.elements.set(cacheKey, document.querySelectorAll(selector));
+            }
+            return this.elements.get(cacheKey);
+        },
+        clear: function() {
+            this.elements.clear();
+        }
+    };
+    
+    // Debounced function utility
+    const debounce = (func, wait) => {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    };
+    
+    // Throttled function utility
+    const throttle = (func, limit) => {
+        let inThrottle;
+        return function() {
+            const args = arguments;
+            const context = this;
+            if (!inThrottle) {
+                func.apply(context, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        };
+    };
+    
+    // ============================================================================
+    // IMMEDIATE FLASH PREVENTION
+    // ============================================================================
+    
+    // Immediately hide any open menu using inline styles to prevent flash
+    (function() {
+        const style = document.createElement('style');
+        style.textContent = `
+            ${CONFIG.selectors.component} { pointer-events: none !important; }
+            ${CONFIG.selectors.mainPanel} { transform: translateX(-100%) !important; }
+            ${CONFIG.selectors.backdrop} { opacity: 0 !important; }
+        `;
+        document.head.appendChild(style);
+        
+        // Remove the style after a short delay to allow normal operation
+        setTimeout(() => {
+            if (style.parentNode) {
+                style.parentNode.removeChild(style);
+            }
+        }, CONFIG.performance.flashPreventionDelay);
+    })();
+    
+    // ============================================================================
+    // GLOBAL STATE MANAGEMENT
+    // ============================================================================
+    
+    // Global variables to track initialization state
+    let isInitialized = false;
+    let eventListenersAttached = false;
 
-    // Initialize nav links with starting animation state
-    gsap.set(primaryNavLinks, { opacity: 0, y: 20 });
-
-    // --- 2. PERFORMANCE OPTIMIZATIONS ---
-    // Cache scrollbar width calculation
+    // Global variables for menu state
+    let sidebarComponent, backdrop, mainSidebar, contentToSlide, primaryNavLinks;
     let cachedScrollbarWidth = null;
+    let resizeTimeout;
+    let currentTimeline = null;
+    let panelStack = [];
+    let originalParents = new Map();
+    let isAnimating = false;
+
+    // ============================================================================
+    // UTILITY FUNCTIONS
+    // ============================================================================
+    
     const getBodyScrollbarWidth = () => {
         if (cachedScrollbarWidth === null) {
             cachedScrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
@@ -33,18 +144,11 @@ document.addEventListener("DOMContentLoaded", () => {
         return cachedScrollbarWidth;
     };
 
-    // Recalculate scrollbar width on resize (debounced)
-    let resizeTimeout;
-    const handleResize = () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            cachedScrollbarWidth = null;
-        }, 150);
-    };
-    window.addEventListener('resize', handleResize, { passive: true });
+    const handleResize = debounce(() => {
+        cachedScrollbarWidth = null;
+        domCache.clear(); // Clear cache on resize
+    }, CONFIG.performance.debounceDelay);
 
-    // Reusable timeline for better memory management
-    let currentTimeline = null;
     const killCurrentTimeline = () => {
         if (currentTimeline) {
             currentTimeline.kill();
@@ -52,30 +156,45 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    // --- 3. STATE MANAGEMENT ---
-    const panelStack = [];
-    const originalParents = new Map();
-    let isAnimating = false;
-
-    // --- 4. ANIMATION AND CONTROL FUNCTIONS ---
+    // ============================================================================
+    // ANIMATION AND CONTROL FUNCTIONS
+    // ============================================================================
+    
     const resetSubNavs = () => {
-        // Use requestAnimationFrame for better performance
         requestAnimationFrame(() => {
             originalParents.forEach((parent, child) => {
-                parent.appendChild(child);
-                gsap.set(child, { x: '100%', visibility: 'hidden', pointerEvents: 'none' });
+                if (parent && child) {
+                    parent.appendChild(child);
+                    gsap.set(child, { x: '100%', visibility: 'hidden', pointerEvents: 'none' });
+                }
             });
             originalParents.clear();
+            
             gsap.set(contentToSlide, { x: '0%' });
             panelStack.length = 0;
+            
+            const subPanels = domCache.getAll(CONFIG.selectors.subPanel);
+            subPanels.forEach(panel => {
+                gsap.set(panel, { x: '100%', visibility: 'hidden', pointerEvents: 'none' });
+            });
         });
     };
-      
-    const openMenu = () => {
-        if (isAnimating) return;
-        isAnimating = true;
 
+    const openMenu = () => {
+        if (isAnimating) {
+            killCurrentTimeline();
+            isAnimating = false;
+        }
+
+        gsap.set(sidebarComponent, { pointerEvents: 'auto' });
+        gsap.set(mainSidebar, { x: '-100%' });
+        gsap.set(backdrop, { opacity: 0 });
+        gsap.set(primaryNavLinks, { opacity: 0, y: 20 });
+
+        isAnimating = true;
         killCurrentTimeline();
+        
+        panelStack.length = 0;
         panelStack.push(contentToSlide);
         
         const scrollbarWidth = getBodyScrollbarWidth();
@@ -92,64 +211,102 @@ document.addEventListener("DOMContentLoaded", () => {
         
         currentTimeline
             .set(sidebarComponent, { pointerEvents: 'auto' })
-            .to(backdrop, { opacity: 1, duration: 0.4 }, "<")
-            .to(mainSidebar, { x: '0%', duration: 0.4, ease: 'power2.out' }, "<")
+            .to(backdrop, { opacity: 1, duration: CONFIG.animation.duration }, "<")
+            .to(mainSidebar, { x: '0%', duration: CONFIG.animation.duration, ease: CONFIG.animation.ease }, "<")
             .to(primaryNavLinks, {
-                duration: 0.3,
+                duration: CONFIG.animation.duration * 0.75,
                 opacity: 1,
                 y: 0,
-                stagger: 0.05,
+                stagger: CONFIG.animation.stagger,
                 ease: 'power1.out'
-            }, "-=0.2");
+            }, `-=${CONFIG.animation.navLinkDelay}`);
     };
 
-    const closeMenu = () => {
-        // Allow closing even during animation - just kill current timeline
+    const closeMenu = (instant = false) => {
         killCurrentTimeline();
         isAnimating = true;
 
-        currentTimeline = gsap.timeline({
-            onComplete: () => {
-                resetSubNavs();
-                gsap.set(sidebarComponent, { pointerEvents: 'none' });
-                gsap.set(primaryNavLinks, { opacity: 0, y: 20 }); 
-                const bodyStyle = document.body.style;
-                bodyStyle.paddingRight = '';
-                bodyStyle.overflow = '';
-                isAnimating = false;
-                currentTimeline = null;
-            }
-        });
-        
-        currentTimeline
-            .to(backdrop, { opacity: 0, duration: 0.4, ease: 'power2.in' })
-            .to(mainSidebar, { x: '-100%', duration: 0.4, ease: 'power2.in' }, "<");
+        if (instant) {
+            // Close immediately without animation
+            resetSubNavs();
+            gsap.set(sidebarComponent, { pointerEvents: 'none' });
+            gsap.set(mainSidebar, { x: '-100%' });
+            gsap.set(backdrop, { opacity: 0 });
+            gsap.set(primaryNavLinks, { opacity: 0, y: 20 }); 
+            const bodyStyle = document.body.style;
+            bodyStyle.paddingRight = '';
+            bodyStyle.overflow = '';
+            isAnimating = false;
+            currentTimeline = null;
+        } else {
+            // Close with animation
+            currentTimeline = gsap.timeline({
+                onComplete: () => {
+                    resetSubNavs();
+                    gsap.set(sidebarComponent, { pointerEvents: 'none' });
+                    gsap.set(primaryNavLinks, { opacity: 0, y: 20 }); 
+                    const bodyStyle = document.body.style;
+                    bodyStyle.paddingRight = '';
+                    bodyStyle.overflow = '';
+                    isAnimating = false;
+                    currentTimeline = null;
+                }
+            });
+            
+            currentTimeline
+                .to(backdrop, { opacity: 0, duration: CONFIG.animation.duration, ease: CONFIG.animation.closeEase })
+                .to(mainSidebar, { x: '-100%', duration: CONFIG.animation.duration, ease: CONFIG.animation.closeEase }, "<");
+        }
     };
 
-    // --- 5. OPTIMIZED EVENT LISTENERS ---
-    // Use event delegation for better performance
+    // ============================================================================
+    // EVENT HANDLERS (OPTIMIZED)
+    // ============================================================================
+    
     const handleGlobalClick = (event) => {
         const target = event.target;
         
-        // Check for menu open/close triggers
-        if (target.closest('[data-menu="open"]')) {
+        if (target.closest(CONFIG.selectors.open)) {
+            console.log('Menu open button clicked');
             event.preventDefault();
             openMenu();
             return;
         }
         
-        if (target.closest('[data-menu="close"]')) {
+        if (target.closest(CONFIG.selectors.close)) {
+            console.log('Menu close button clicked');
             event.preventDefault();
-            closeMenu();
+            closeMenu(false);
             return;
+        }
+        
+        // Close menu when clicking on external navigation links (not sub-menu items)
+        if (target.closest('a[href]') && 
+            !target.closest(CONFIG.selectors.open) && 
+            !target.closest(CONFIG.selectors.close) && 
+            !target.closest(CONFIG.selectors.openSub) &&
+            !target.closest(CONFIG.selectors.back)) {
+            console.log('External navigation link clicked, closing menu');
+            
+            // Prevent the default navigation
+            event.preventDefault();
+            
+            // Close menu immediately without animation
+            closeMenu(true);
+            
+            // Get the href and navigate immediately
+            const link = target.closest('a[href]');
+            const href = link.getAttribute('href');
+            
+            // Navigate immediately since menu is already closed
+            window.location.href = href;
         }
     };
 
-    // Optimized panel navigation with event delegation
     const handlePanelNavigation = (event) => {
         const target = event.target;
-        const openLink = target.closest('[data-menu="open-sub"]');
-        const backButton = target.closest('[data-menu="back"]');
+        const openLink = target.closest(CONFIG.selectors.openSub);
+        const backButton = target.closest(CONFIG.selectors.back);
 
         if (openLink) {
             event.preventDefault();
@@ -157,7 +314,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const parentItem = openLink.closest('.w-dyn-item');
             if (!parentItem) return;
             
-            const nextPanel = parentItem.querySelector('[data-menu="sub-panel"]');
+            const nextPanel = parentItem.querySelector(CONFIG.selectors.subPanel);
             if (!nextPanel || isAnimating) return;
             
             isAnimating = true;
@@ -176,8 +333,8 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             
             currentTimeline
-                .to(currentPanel, { x: '-100%', duration: 0.4, ease: 'power2.inOut' })
-                .to(nextPanel, { x: '0%', visibility: 'visible', pointerEvents: 'auto', duration: 0.4, ease: 'power2.inOut' }, "<");
+                .to(currentPanel, { x: '-100%', duration: CONFIG.animation.duration, ease: 'power2.inOut' })
+                .to(nextPanel, { x: '0%', visibility: 'visible', pointerEvents: 'auto', duration: CONFIG.animation.duration, ease: 'power2.inOut' }, "<");
         }
         
         if (backButton) {
@@ -204,23 +361,300 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             
             currentTimeline
-                .to(panelToReveal, { x: '0%', duration: 0.4, ease: 'power2.inOut' })
-                .to(panelToClose, { x: '100%', pointerEvents: 'none', duration: 0.4, ease: 'power2.inOut' }, "<");
+                .to(panelToReveal, { x: '0%', duration: CONFIG.animation.duration, ease: 'power2.inOut' })
+                .to(panelToClose, { x: '100%', pointerEvents: 'none', duration: CONFIG.animation.duration, ease: 'power2.inOut' }, "<");
         }
     };
 
-    // Attach event listeners
-    document.addEventListener('click', handleGlobalClick, { passive: false });
-    mainSidebar.addEventListener('click', handlePanelNavigation, { passive: false });
-    backdrop.addEventListener('click', closeMenu, { passive: true });
+    const handlePopState = () => {
+        console.log('Browser navigation detected (popstate)');
+        
+        // Detach existing listeners first
+        detachEventListeners();
+        
+        // Reset initialization state to allow re-initialization
+        isInitialized = false;
+        
+        // Force close any open menu first
+        if (sidebarComponent && mainSidebar) {
+            gsap.set(sidebarComponent, { pointerEvents: 'none' });
+            gsap.set(mainSidebar, { x: '-100%' });
+            if (backdrop) gsap.set(backdrop, { opacity: 0 });
+            if (primaryNavLinks) gsap.set(primaryNavLinks, { opacity: 0, y: 20 });
+            
+            // Reset body styles
+            const bodyStyle = document.body.style;
+            bodyStyle.paddingRight = '';
+            bodyStyle.overflow = '';
+        }
+        
+        // Re-initialize after a short delay to ensure DOM is ready
+        setTimeout(() => {
+            console.log('Re-initializing after popstate...');
+            initializeMenu();
+            attachEventListeners();
+        }, CONFIG.performance.flashPreventionDelay);
+    };
 
-    // --- 6. CLEANUP ON PAGE UNLOAD ---
+    // ============================================================================
+    // INITIALIZATION FUNCTIONS
+    // ============================================================================
+    
+    const initializeMenuState = () => {
+        gsap.set(sidebarComponent, { pointerEvents: 'none' });
+        gsap.set(mainSidebar, { x: '-100%' });
+        gsap.set(backdrop, { opacity: 0 });
+        gsap.set(primaryNavLinks, { opacity: 0, y: 20 });
+        
+        killCurrentTimeline();
+        isAnimating = false;
+        panelStack.length = 0;
+        originalParents.clear();
+        resetSubNavs();
+        
+        const bodyStyle = document.body.style;
+        bodyStyle.paddingRight = '';
+        bodyStyle.overflow = '';
+    };
+
+    const initializeMenu = () => {
+        console.log('Initializing menu...');
+        
+        // Check if GSAP is available
+        if (typeof gsap === 'undefined') {
+            console.error("Mega Menu Error: GSAP is not loaded.");
+            return false;
+        }
+        
+        // Element selection using cached queries
+        sidebarComponent = domCache.get(CONFIG.selectors.component);
+        backdrop = domCache.get(CONFIG.selectors.backdrop);
+        mainSidebar = domCache.get(CONFIG.selectors.mainPanel);
+        contentToSlide = domCache.get(CONFIG.selectors.contentToSlide);
+        
+        console.log('Elements found:', {
+            sidebarComponent: !!sidebarComponent,
+            backdrop: !!backdrop,
+            mainSidebar: !!mainSidebar,
+            contentToSlide: !!contentToSlide
+        });
+        
+        if (!sidebarComponent || !mainSidebar || !contentToSlide) {
+            console.error("Mega Menu Error: Critical data-attribute targets are missing.");
+            return false;
+        }
+        
+        const allNavLinks = contentToSlide.querySelectorAll(CONFIG.selectors.navLinks);
+        primaryNavLinks = Array.from(allNavLinks).filter(link => !link.closest(CONFIG.selectors.subPanel));
+        
+        if (primaryNavLinks.length === 0) {
+            console.error("Mega Menu Error: No primary navigation links found.");
+            return false;
+        }
+      
+        gsap.set(primaryNavLinks, { opacity: 0, y: 20 });
+        
+        // Initialize menu state
+        initializeMenuState();
+        
+        // Force close menu in case it was left open
+        gsap.set(sidebarComponent, { pointerEvents: 'none' });
+        gsap.set(mainSidebar, { x: '-100%' });
+        gsap.set(backdrop, { opacity: 0 });
+        gsap.set(primaryNavLinks, { opacity: 0, y: 20 });
+        
+        // Reset body styles
+        const bodyStyle = document.body.style;
+        bodyStyle.paddingRight = '';
+        bodyStyle.overflow = '';
+        
+        isInitialized = true;
+        console.log('Menu initialized successfully');
+        return true;
+    };
+
+    const attachEventListeners = () => {
+        console.log('Attaching event listeners...');
+        
+        // Always detach first to ensure clean state
+        detachEventListeners();
+
+        if (!mainSidebar || !backdrop) {
+            console.log('Cannot attach listeners - elements not found');
+            return;
+        }
+
+        document.addEventListener('click', handleGlobalClick, { passive: false });
+        mainSidebar.addEventListener('click', handlePanelNavigation, { passive: false });
+        backdrop.addEventListener('click', () => closeMenu(false), { passive: true });
+        window.addEventListener('resize', handleResize, { passive: true });
+        window.addEventListener('popstate', handlePopState);
+
+        eventListenersAttached = true;
+        console.log('Event listeners attached successfully');
+        
+        // Test if the open button exists and log it
+        const openButton = domCache.get(CONFIG.selectors.open);
+        console.log('Open button found:', !!openButton);
+        if (openButton) {
+            console.log('Open button element:', openButton);
+            // Test click event on the button
+            openButton.addEventListener('click', (e) => {
+                console.log('Direct click on open button detected');
+            }, { once: true });
+        }
+        
+        // Also test document click event
+        document.addEventListener('click', (e) => {
+            if (e.target.closest(CONFIG.selectors.open)) {
+                console.log('Document click detected on open button');
+            }
+        }, { once: true });
+    };
+
+    const detachEventListeners = () => {
+        console.log('Detaching event listeners...');
+        
+        // Always try to remove listeners, even if not marked as attached
+        document.removeEventListener('click', handleGlobalClick);
+        if (mainSidebar) {
+            mainSidebar.removeEventListener('click', handlePanelNavigation);
+        }
+        if (backdrop) {
+            backdrop.removeEventListener('click', closeMenu);
+        }
+
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('popstate', handlePopState);
+
+        eventListenersAttached = false;
+        console.log('Event listeners detached');
+    };
+
+    // ============================================================================
+    // INITIALIZATION TRIGGERS
+    // ============================================================================
+    
+    const attemptInitialization = () => {
+        console.log('Attempting initialization...');
+        if (initializeMenu()) {
+            attachEventListeners();
+            return true;
+        }
+        return false;
+    };
+
+    // Hide menu immediately using CSS to prevent flash
+    const hideMenuImmediately = () => {
+        const sidebarComponent = domCache.get(CONFIG.selectors.component);
+        const mainSidebar = domCache.get(CONFIG.selectors.mainPanel);
+        const backdrop = domCache.get(CONFIG.selectors.backdrop);
+        
+        if (sidebarComponent) {
+            sidebarComponent.style.pointerEvents = 'none';
+        }
+        if (mainSidebar) {
+            mainSidebar.style.transform = 'translateX(-100%)';
+        }
+        if (backdrop) {
+            backdrop.style.opacity = '0';
+        }
+        
+        // Reset body styles
+        document.body.style.paddingRight = '';
+        document.body.style.overflow = '';
+    };
+
+    // Hide menu immediately without waiting for GSAP
+    hideMenuImmediately();
+
+    // Wait for GSAP to be available before running
+    const waitForGSAP = () => {
+        if (typeof gsap !== 'undefined') {
+            preventMenuFlash();
+        } else {
+            // Check again in 100ms
+            setTimeout(waitForGSAP, CONFIG.performance.flashPreventionDelay);
+        }
+    };
+
+    // Start waiting for GSAP
+    waitForGSAP();
+
+    document.addEventListener("DOMContentLoaded", () => {
+        console.log('DOMContentLoaded fired');
+        attemptInitialization();
+    });
+
+    // Also initialize if DOM is already loaded (for browser back/forward)
+    if (document.readyState === 'loading') {
+        console.log('DOM still loading, waiting for DOMContentLoaded');
+    } else {
+        console.log('DOM already loaded, initializing immediately');
+        attemptInitialization();
+    }
+
+    // Handle page visibility changes (for when user returns to tab)
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && !isInitialized) {
+            console.log('Page became visible, re-initializing');
+            setTimeout(() => {
+                attemptInitialization();
+            }, CONFIG.performance.flashPreventionDelay);
+        }
+    });
+
+    // Additional event listener for pageshow event (better for browser navigation)
+    window.addEventListener('pageshow', (event) => {
+        console.log('Pageshow event fired, persisted:', event.persisted);
+        if (event.persisted) {
+            console.log('Page was loaded from cache, re-initializing');
+            setTimeout(() => {
+                // Force close any open menu first
+                if (sidebarComponent && mainSidebar) {
+                    gsap.set(sidebarComponent, { pointerEvents: 'none' });
+                    gsap.set(mainSidebar, { x: '-100%' });
+                    if (backdrop) gsap.set(backdrop, { opacity: 0 });
+                    if (primaryNavLinks) gsap.set(primaryNavLinks, { opacity: 0, y: 20 });
+                    
+                    // Reset body styles
+                    const bodyStyle = document.body.style;
+                    bodyStyle.paddingRight = '';
+                    bodyStyle.overflow = '';
+                }
+                
+                detachEventListeners();
+                isInitialized = false;
+                attemptInitialization();
+            }, CONFIG.performance.flashPreventionDelay);
+        }
+    });
+
+    // Additional fallback: try initialization periodically if not successful
+    let initAttempts = 0;
+    const initInterval = setInterval(() => {
+        if (isInitialized || initAttempts >= CONFIG.performance.maxInitAttempts) {
+            clearInterval(initInterval);
+            return;
+        }
+        
+        console.log(`Initialization attempt ${initAttempts + 1}/${CONFIG.performance.maxInitAttempts}`);
+        if (attemptInitialization()) {
+            clearInterval(initInterval);
+        }
+        initAttempts++;
+    }, CONFIG.performance.initRetryInterval);
+
+    // ============================================================================
+    // CLEANUP
+    // ============================================================================
+    
     window.addEventListener('beforeunload', () => {
         clearTimeout(resizeTimeout);
         killCurrentTimeline();
-        window.removeEventListener('resize', handleResize);
-        document.removeEventListener('click', handleGlobalClick);
-        mainSidebar.removeEventListener('click', handlePanelNavigation);
-        backdrop.removeEventListener('click', closeMenu);
+        detachEventListeners();
     });
-});
+
+    // Mark as initialized globally
+    window.megaMenuInitialized = true;
+})();
