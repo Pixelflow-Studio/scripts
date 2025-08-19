@@ -8,6 +8,8 @@
  * ==================================================================================
  */
 
+
+
 // --- PRODUCTION CONFIGURATION ---
 const HERO_SLIDER_CONFIG = {
   // Debug mode (set to false for production)
@@ -244,6 +246,15 @@ function animateSlideIn(slide) {
     }
     
     if (slide.classList.contains('swiper-slide-active')) {
+      // Check if this slide has already been animated to prevent double animation
+      if (slide.dataset.animated === 'true') {
+        Logger.log('Slide already animated, skipping');
+        return;
+      }
+      
+      // Mark slide as animated
+      slide.dataset.animated = 'true';
+      
       // Use more efficient GSAP animations
       gsap.to(image, ANIMATION_CONFIG.slideIn.image);
       gsap.fromTo(contentItems, 
@@ -264,6 +275,9 @@ function resetSlide(slide) {
       return;
     }
     
+    // Reset animation state
+    slide.dataset.animated = 'false';
+    
     gsap.to(image, ANIMATION_CONFIG.reset.image);
     gsap.to(contentItems, ANIMATION_CONFIG.reset.content);
   }, 'resetSlide')();
@@ -273,6 +287,7 @@ function resetSlide(slide) {
 
 // Cache pagination element once
 let paginationEl = null;
+let isInitialLoad = true;
 
 // Performance monitoring (optional)
 const performanceMonitor = {
@@ -306,7 +321,15 @@ const eventHandlers = {
       
       if (i === activeIndex) {
         Logger.log('Animating initial slide:', i);
-        animateSlideIn(slide);
+        // For initial load, delay animation slightly to let page transition complete
+        if (isInitialLoad) {
+          setTimeout(() => {
+            animateSlideIn(slide);
+          }, 100);
+          isInitialLoad = false;
+        } else {
+          animateSlideIn(slide);
+        }
       } else {
         resetSlide(slide);
       }
@@ -346,8 +369,13 @@ const eventHandlers = {
     
     const activeSlide = swiper.slides[swiper.activeIndex];
     if (activeSlide) {
-      Logger.log('Animating new active slide');
-      animateSlideIn(activeSlide);
+      // Don't animate the initial slide again if it's the first load
+      if (!isInitialLoad) {
+        Logger.log('Animating new active slide');
+        animateSlideIn(activeSlide);
+      } else {
+        Logger.log('Skipping initial slide animation (already handled)');
+      }
     }
     
     // Fix pagination dots after slide change
@@ -525,6 +553,14 @@ function initializeHeroSwiper() {
     });
     
     Logger.log('Hero slider initialized successfully');
+    
+    // Hide page transition after successful initialization (if available)
+    setTimeout(() => {
+      if (window.PageTransition && typeof window.PageTransition.hide === 'function') {
+        window.PageTransition.hide();
+      }
+    }, 300);
+    
     return true;
   }, 'initializeHeroSwiper')();
 }
@@ -616,6 +652,8 @@ document.addEventListener('DOMContentLoaded', function() {
   }, 1000); // Increased delay to prevent conflicts
 });
 
+
+
 // Also try to initialize on window load as backup
 window.addEventListener('load', function() {
   Logger.log('Window load - checking hero slider');
@@ -641,10 +679,36 @@ setTimeout(() => {
   }
 }, 2000);
 
+// Fallback: Hide page transition after 5 seconds even if slider fails
+setTimeout(() => {
+  if (window.PageTransition && window.PageTransition.getStatus && window.PageTransition.getStatus().hasOverlay) {
+    Logger.warn('Forcing page transition hide after timeout');
+    window.PageTransition.hide();
+  }
+}, 5000);
+
 // --- 6. PUBLIC API FOR EXTERNAL CONTROL ---
 window.HeroSlider = {
   // Get the swiper instance
   getInstance: () => heroSwiper,
+  
+  // Page transition controls
+  showPageTransition: () => {
+    if (window.PageTransition && typeof window.PageTransition.show === 'function') {
+      window.PageTransition.show();
+    }
+  },
+  hidePageTransition: () => {
+    if (window.PageTransition && typeof window.PageTransition.hide === 'function') {
+      window.PageTransition.hide();
+    }
+  },
+  isPageTransitioning: () => {
+    if (window.PageTransition && typeof window.PageTransition.isTransitioning === 'function') {
+      return window.PageTransition.isTransitioning();
+    }
+    return false;
+  },
   
   // Manually go to slide
   goToSlide: (index) => {
