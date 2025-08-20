@@ -20,6 +20,10 @@ const PAGE_TRANSITION_CONFIG = {
   autoHideDelay: 1000, // Hide after 1 second
   minDisplayTime: 300, // Minimum time to show transition
   
+  // Link transition settings
+  enableLinkTransitions: true,
+  linkTransitionDelay: 100, // Delay before navigation starts
+  
   // Always use existing HTML elements from Webflow
   useExistingElements: true,
   overlaySelector: '.page-transition-overlay',
@@ -179,6 +183,9 @@ class PageTransition {
     
     // Handle browser navigation (back/forward buttons)
     this.setupNavigationEvents();
+    
+    // Handle link clicks for page transitions
+    this.setupLinkClickHandlers();
   }
   
   // Set up auto-hide functionality
@@ -246,19 +253,6 @@ class PageTransition {
       }
     });
     
-    // Handle page visibility changes (when user switches tabs)
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        // Page is being hidden (user navigating away)
-        this.show();
-      } else {
-        // Page is becoming visible again
-        setTimeout(() => {
-          this.hide();
-        }, 300);
-      }
-    });
-    
     // Handle page show/hide events (mobile browsers)
     window.addEventListener('pageshow', (event) => {
       // If page is being shown from cache (back/forward navigation)
@@ -272,6 +266,54 @@ class PageTransition {
     
     window.addEventListener('pagehide', () => {
       this.show();
+    });
+  }
+  
+  // Set up link click handlers for page transitions
+  setupLinkClickHandlers() {
+    if (!PAGE_TRANSITION_CONFIG.enableLinkTransitions) return;
+    
+    // Handle all link clicks
+    document.addEventListener('click', (event) => {
+      const link = event.target.closest('a');
+      
+      if (!link) return;
+      
+      // Skip if it's not a regular link or has special attributes
+      if (link.target === '_blank' || 
+          link.hasAttribute('download') || 
+          link.getAttribute('href')?.startsWith('mailto:') ||
+          link.getAttribute('href')?.startsWith('tel:') ||
+          link.getAttribute('href')?.startsWith('javascript:') ||
+          link.getAttribute('href')?.startsWith('#') ||
+          link.classList.contains('no-transition')) {
+        return;
+      }
+      
+      // Get the href
+      const href = link.getAttribute('href');
+      if (!href || href === window.location.href) return;
+      
+      // Check if it's a same-origin link
+      try {
+        const url = new URL(href, window.location.origin);
+        if (url.origin !== window.location.origin) {
+          return; // External link, don't transition
+        }
+      } catch (e) {
+        return; // Invalid URL
+      }
+      
+      // Prevent default behavior and handle transition
+      event.preventDefault();
+      
+      // Show transition
+      this.show();
+      
+      // Navigate after a short delay to allow transition to appear
+      setTimeout(() => {
+        window.location.href = href;
+      }, PAGE_TRANSITION_CONFIG.linkTransitionDelay);
     });
   }
   
