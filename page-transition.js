@@ -1,440 +1,419 @@
-/**
- * ==================================================================================
- * UNIVERSAL PAGE TRANSITION SYSTEM
- * ==================================================================================
- * Version: 1.0.0
- * Purpose: Smooth page transitions to cover initial white gaps
- * Browser Support: Modern browsers (ES6+)
- * ==================================================================================
- */
+// Page Transition with GSAP and Smootify Integration
+// Make sure to include GSAP in your Webflow project
 
-// --- CONFIGURATION ---
-const PAGE_TRANSITION_CONFIG = {
-  enabled: true,
-  backgroundColor: '#000000',
-  fadeOutDuration: 800,
-  easing: 'ease-out',
-  
-  // Auto-hide settings
-  autoHide: true,
-  autoHideDelay: 1000, // Hide after 1 second
-  minDisplayTime: 300, // Minimum time to show transition
-  
-  // Link transition settings
-  enableLinkTransitions: true,
-  linkTransitionDelay: 100, // Delay before navigation starts
-  
-  // Always use existing HTML elements from Webflow
-  useExistingElements: true,
-  overlaySelector: '.page-transition-overlay',
-  preloadSelector: '.page-transition-preload'
-};
+// Create progress bar element
+function createProgressBar() {
+    const progressBar = document.createElement('div');
+    progressBar.className = 'page-transition-progress';
+    progressBar.innerHTML = `
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <div class="progress-text">Loading...</div>
+        </div>
+    `;
+    return progressBar;
+}
 
-// --- STYLES ---
-const pageTransitionStyles = `
-  .page-transition-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: ${PAGE_TRANSITION_CONFIG.backgroundColor};
-    z-index: 999999;
-    opacity: 1;
-    visibility: visible;
-    transition: opacity ${PAGE_TRANSITION_CONFIG.fadeOutDuration}ms ${PAGE_TRANSITION_CONFIG.easing}, 
-                visibility ${PAGE_TRANSITION_CONFIG.fadeOutDuration}ms ${PAGE_TRANSITION_CONFIG.easing};
-  }
-  
-  .page-transition-overlay.hidden {
-    opacity: 0;
-    visibility: hidden;
-  }
-  
-  /* Prevent flash of unstyled content */
-  .page-transition-preload {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: ${PAGE_TRANSITION_CONFIG.backgroundColor};
-    z-index: 999998;
-  }
-`;
-
-// --- UTILITY FUNCTIONS ---
-const Utils = {
-  // Inject styles safely
-  injectStyles() {
-    try {
-      const styleSheet = document.createElement('style');
-      styleSheet.textContent = pageTransitionStyles;
-      styleSheet.setAttribute('data-page-transition', 'true');
-      document.head.appendChild(styleSheet);
-      return true;
-    } catch (error) {
-      console.error('[Page Transition] Failed to inject styles:', error);
-      return false;
-    }
-  },
-  
-
-  
-  // Get page load time
-  getPageLoadTime() {
-    return performance.now();
-  },
-  
-  // Debounce function
-  debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
-  }
-};
-
-// --- PAGE TRANSITION CLASS ---
-class PageTransition {
-  constructor() {
-    this.overlay = null;
-    this.startTime = 0;
-    this.autoHideTimer = null;
-    this.isInitialized = false;
-  }
-  
-  // Initialize the page transition system
-  init() {
-    if (this.isInitialized || !PAGE_TRANSITION_CONFIG.enabled) return;
+// Initialize page transition when both DOM and Smootify are ready
+function initializePageTransition() {
     
-    // Inject styles
-    if (!Utils.injectStyles()) {
-      console.error('[Page Transition] Failed to initialize - styles injection failed');
-      return;
-    }
+    // Get the overlay element
+    const overlay = document.querySelector('.page-transition-overlay');
     
-    // Always try to use existing elements first, fallback to creating them
-    this.useExistingElements();
-    
-    // Set up event listeners
-    this.setupEventListeners();
-    
-    this.isInitialized = true;
-    console.log('[Page Transition] Initialized successfully');
-  }
-  
-  // Create preload overlay to prevent initial flash
-  createPreloadOverlay() {
-    const preload = document.createElement('div');
-    preload.className = 'page-transition-preload';
-    document.body.appendChild(preload);
-    
-    // Remove preload after a short delay
-    setTimeout(() => {
-      if (preload.parentNode) {
-        preload.parentNode.removeChild(preload);
-      }
-    }, 100);
-  }
-  
-  // Use existing HTML elements from Webflow
-  useExistingElements() {
-    // Find existing overlay
-    this.overlay = document.querySelector(PAGE_TRANSITION_CONFIG.overlaySelector);
-    
-    if (!this.overlay) {
-      console.warn('[Page Transition] Existing overlay not found, falling back to creating one');
-      this.createOverlay();
-      return;
-    }
-    
-    console.log('[Page Transition] Using existing overlay element');
-    
-    // Remove preload if it exists
-    const existingPreload = document.querySelector(PAGE_TRANSITION_CONFIG.preloadSelector);
-    if (existingPreload) {
-      setTimeout(() => {
-        if (existingPreload.parentNode) {
-          existingPreload.parentNode.removeChild(existingPreload);
-        }
-      }, 100);
-    }
-  }
-  
-  // Create the main overlay
-  createOverlay() {
-    this.overlay = document.createElement('div');
-    this.overlay.className = 'page-transition-overlay';
-    document.body.appendChild(this.overlay);
-  }
-  
-  // Set up event listeners
-  setupEventListeners() {
-    // Hide transition when page is fully loaded
-    if (PAGE_TRANSITION_CONFIG.autoHide) {
-      this.setupAutoHide();
-    }
-    
-    // Handle browser navigation (back/forward buttons)
-    this.setupNavigationEvents();
-    
-    // Handle link clicks for page transitions
-    this.setupLinkClickHandlers();
-  }
-  
-  // Set up auto-hide functionality
-  setupAutoHide() {
-    const hideTransition = () => {
-      // Wait for minimum display time
-      const elapsed = performance.now() - this.startTime;
-      const remainingTime = Math.max(0, PAGE_TRANSITION_CONFIG.minDisplayTime - elapsed);
-      
-      setTimeout(() => {
-        this.hide();
-      }, remainingTime);
-    };
-    
-    // Try multiple triggers for auto-hide
-    if (document.readyState === 'complete') {
-      hideTransition();
-    } else {
-      window.addEventListener('load', hideTransition);
-    }
-    
-    // Fallback timer
-    this.autoHideTimer = setTimeout(() => {
-      if (this.overlay && !this.overlay.classList.contains('hidden')) {a
-        console.warn('[Page Transition] Auto-hiding after timeout');
-        this.hide();
-      }
-    }, PAGE_TRANSITION_CONFIG.autoHideDelay);
-  }
-  
-  // Set up navigation events for back/forward buttons
-  setupNavigationEvents() {
-    let navigationTimeout = null;
-    let lastNavigationTime = 0;
-    
-    // Show transition when page is about to unload (navigation starting)
-    window.addEventListener('beforeunload', () => {
-      this.show();
-    });
-    
-    // Handle popstate events (back/forward button clicks)
-    window.addEventListener('popstate', () => {
-      const now = performance.now();
-      const timeSinceLastNav = now - lastNavigationTime;
-      lastNavigationTime = now;
-      
-      // Clear any existing timeout
-      if (navigationTimeout) {
-        clearTimeout(navigationTimeout);
-      }
-      
-      // If navigation happens too quickly, show transition immediately
-      if (timeSinceLastNav < 100) {
-        this.show();
-        // Keep it visible longer for rapid navigation
-        navigationTimeout = setTimeout(() => {
-          this.hide();
-        }, 800);
-      } else {
-        this.show();
-        // Normal delay for regular navigation
-        navigationTimeout = setTimeout(() => {
-          this.hide();
-        }, 500);
-      }
-    });
-    
-    // Handle page show/hide events (mobile browsers)
-    window.addEventListener('pageshow', (event) => {
-      // If page is being shown from cache (back/forward navigation)
-      if (event.persisted) {
-        this.show();
-        setTimeout(() => {
-          this.hide();
-        }, 500);
-      }
-    });
-    
-    window.addEventListener('pagehide', () => {
-      this.show();
-    });
-  }
-  
-  // Set up link click handlers for page transitions
-  setupLinkClickHandlers() {
-    if (!PAGE_TRANSITION_CONFIG.enableLinkTransitions) return;
-    
-    // Handle all link clicks
-    document.addEventListener('click', (event) => {
-      const link = event.target.closest('a');
-      
-      if (!link) return;
-      
-      // Skip if it's not a regular link or has special attributes
-      if (link.target === '_blank' || 
-          link.hasAttribute('download') || 
-          link.getAttribute('href')?.startsWith('mailto:') ||
-          link.getAttribute('href')?.startsWith('tel:') ||
-          link.getAttribute('href')?.startsWith('javascript:') ||
-          link.getAttribute('href')?.startsWith('#') ||
-          link.classList.contains('no-transition')) {
+    // If overlay doesn't exist, exit
+    if (!overlay) {
+        console.warn('Page transition overlay not found. Make sure you have an element with class "page-transition-overlay"');
         return;
-      }
-      
-      // Get the href
-      const href = link.getAttribute('href');
-      if (!href || href === window.location.href) return;
-      
-      // Check if it's a same-origin link
-      try {
-        const url = new URL(href, window.location.origin);
-        if (url.origin !== window.location.origin) {
-          return; // External link, don't transition
-        }
-      } catch (e) {
-        return; // Invalid URL
-      }
-      
-      // Prevent default behavior and handle transition
-      event.preventDefault();
-      
-      // Show transition
-      this.show();
-      
-      // Navigate after a short delay to allow transition to appear
-      setTimeout(() => {
-        window.location.href = href;
-      }, PAGE_TRANSITION_CONFIG.linkTransitionDelay);
+    }
+    
+    // Set initial state - overlay should be visible on page load
+    gsap.set(overlay, {
+        opacity: 1,
+        visibility: 'visible',
+        display: 'block'
     });
-  }
-  
-  // Show the transition
-  show() {
-    this.startTime = performance.now();
     
-    // Recreate overlay if needed
-    if (!this.overlay) {
-      this.createOverlay();
-    }
+    // Force a reflow to ensure the overlay is properly rendered
+    overlay.offsetHeight;
     
-    if (this.overlay) {
-      this.overlay.classList.remove('hidden');
-    }
-  }
-  
-  // Hide the transition
-  hide() {
-    if (!this.overlay) return;
+    // Progress bar is already added and animating from the immediate initialization above
+    // We just need to trigger the fade-in when everything is ready
     
-    // Clear auto-hide timer
-    if (this.autoHideTimer) {
-      clearTimeout(this.autoHideTimer);
-      this.autoHideTimer = null;
-    }
-    
-    // Hide the overlay
-    this.overlay.classList.add('hidden');
-    
-    // Don't remove the overlay immediately - keep it for potential rapid navigation
-    // Only remove it after a longer delay to prevent issues with quick back/forward
-    setTimeout(() => {
-      if (this.overlay && this.overlay.parentNode && this.overlay.classList.contains('hidden')) {
-        // Only remove if it's still hidden and no new navigation has started
-        const timeSinceHide = performance.now() - this.startTime;
-        if (timeSinceHide > PAGE_TRANSITION_CONFIG.fadeOutDuration + 1000) {
-          this.overlay.parentNode.removeChild(this.overlay);
-          this.overlay = null;
+    // Remove overlay when page loads (no fade-in animation)
+    function fadeInOnLoad() {
+        // Get the progress bar
+        const progressBar = overlay.querySelector('.page-transition-progress');
+        const progressFill = progressBar ? progressBar.querySelector('.progress-fill') : null;
+        
+        // If progress bar exists and hasn't finished, complete it first
+        if (progressBar && progressFill) {
+            // Complete the progress bar animation
+            gsap.to(progressFill, {
+                width: '100%',
+                duration: 0.3,
+                ease: 'power2.out',
+                onComplete: () => {
+                    // Remove progress bar and hide overlay immediately
+                    progressBar.remove();
+                    gsap.set(overlay, {
+                        opacity: 0,
+                        visibility: 'hidden'
+                    });
+                }
+            });
+        } else {
+            // No progress bar, just hide overlay immediately
+            gsap.set(overlay, {
+                opacity: 0,
+                visibility: 'hidden'
+            });
         }
-      }
-    }, PAGE_TRANSITION_CONFIG.fadeOutDuration + 1000);
-  }
-  
-  // Force hide (immediate)
-  forceHide() {
-    if (this.autoHideTimer) {
-      clearTimeout(this.autoHideTimer);
-      this.autoHideTimer = null;
     }
     
-    if (this.overlay && this.overlay.parentNode) {
-      this.overlay.parentNode.removeChild(this.overlay);
-      this.overlay = null;
+    // Fade out animation when navigating away
+    function fadeOutOnNavigate() {
+        // Show the overlay
+        gsap.set(overlay, {
+            visibility: 'visible'
+        });
+        
+        gsap.to(overlay, {
+            opacity: 1,
+            duration: 0.5,
+            ease: 'power3.in'
+        });
     }
-  }
-  
-  // Update configuration
-  updateConfig(newConfig) {
-    Object.assign(PAGE_TRANSITION_CONFIG, newConfig);
-    console.log('[Page Transition] Configuration updated:', newConfig);
-  }
-  
-  // Get current status
-  getStatus() {
-    return {
-      isInitialized: this.isInitialized,
-      hasOverlay: !!this.overlay,
-      config: { ...PAGE_TRANSITION_CONFIG }
+    
+    // Handle page visibility changes (for mobile browsers)
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            // Don't trigger fade out on tab change - just let the page handle it naturally
+            // fadeOutOnNavigate();
+        } else {
+            // When returning to the tab, ensure overlay is hidden
+            gsap.set(overlay, {
+                opacity: 0,
+                visibility: 'hidden'
+            });
+        }
+    });
+    
+    // Handle beforeunload event
+    window.addEventListener('beforeunload', function() {
+        fadeOutOnNavigate();
+    });
+    
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', function() {
+        // For Chrome, we need to handle this differently
+        // The navigation happens immediately, so we can't delay it
+        // Instead, we'll just trigger the fade out and let it happen
+        fadeOutOnNavigate();
+    });
+    
+    // Handle clicks on links that navigate away
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest('a');
+        if (link && link.href && !link.href.includes('#') && !link.href.includes('javascript:') && link.target !== '_blank') {
+            // Check if it's an external link or different page
+            const currentDomain = window.location.origin;
+            const linkDomain = new URL(link.href, window.location.href).origin;
+            const currentUrl = window.location.href.split('?')[0]; // Remove query parameters
+            const linkUrl = link.href.split('?')[0]; // Remove query parameters
+            
+            // Trigger transition for any navigation (including same page if it's a full page reload)
+            if (linkDomain !== currentDomain || linkUrl !== currentUrl) {
+                e.preventDefault();
+                fadeOutOnNavigate();
+                
+                // Navigate after animation with consistent timing
+                setTimeout(() => {
+                    window.location.href = link.href;
+                }, 1000);
+            }
+        }
+    });
+    
+    // Handle browser back/forward buttons with proper history management
+    let isNavigating = false;
+    
+    // Override pushState to track programmatic navigation
+    const originalPushState = history.pushState;
+    history.pushState = function() {
+        originalPushState.apply(history, arguments);
+        isNavigating = true;
     };
-  }
+    
+    // Override replaceState to track programmatic navigation
+    const originalReplaceState = history.replaceState;
+    history.replaceState = function() {
+        originalReplaceState.apply(history, arguments);
+        isNavigating = true;
+    };
+    
+    // Simplified browser navigation handling
+    // For Chrome, we'll focus on making the fade-in work properly
+    // and let the browser handle navigation naturally
+    
+    // Handle beforeunload - this is the most reliable event
+    window.addEventListener('beforeunload', function() {
+        // Just trigger the fade out - don't try to delay navigation
+        fadeOutOnNavigate();
+    });
+    
+    // For back/forward buttons, we'll rely on the fade-in animation
+    // when the new page loads, rather than trying to control the fade-out
+    
+    // Start the fade in animation after a small delay
+    setTimeout(fadeInOnLoad, 100);
+    
+    // Optional: Add a class to body when transition is active
+    function addTransitionClass() {
+        document.body.classList.add('page-transitioning');
+    }
+    
+    function removeTransitionClass() {
+        document.body.classList.remove('page-transitioning');
+    }
+    
+    // Enhanced fade out with body class
+    function enhancedFadeOut() {
+        addTransitionClass();
+        fadeOutOnNavigate();
+    }
+    
+    // Enhanced fade in with body class
+    function enhancedFadeIn() {
+        removeTransitionClass();
+        fadeInOnLoad();
+    }
+    
+    // Replace the original functions with enhanced versions
+    window.pageTransitionFadeOut = enhancedFadeOut;
+    window.pageTransitionFadeIn = enhancedFadeIn;
+    
+    // Initialize fade in with a small delay to ensure everything is ready
+    setTimeout(() => {
+        enhancedFadeIn();
+    }, 50);
 }
 
-// --- GLOBAL INSTANCE ---
-const globalPageTransition = new PageTransition();
+// Show loading state immediately when script loads
+(function() {
+    function initializeProgressBar() {
+        const overlay = document.querySelector('.page-transition-overlay');
+        if (overlay && typeof gsap !== 'undefined') {
+            // Set overlay to visible immediately
+            gsap.set(overlay, {
+                opacity: 1,
+                visibility: 'visible',
+                display: 'block'
+            });
+            
+            // Add progress bar immediately
+            const progressBar = createProgressBar();
+            overlay.appendChild(progressBar);
+            
+            // Start progress animation immediately
+            const progressFill = progressBar.querySelector('.progress-fill');
+            
+            // Store progress bar reference globally so we can update it
+            window.pageTransitionProgress = {
+                element: progressFill,
+                bar: progressBar,
+                overlay: overlay
+            };
+            
+            // Start with 0% progress
+            gsap.set(progressFill, { width: '0%' });
+        }
+    }
+    
+    // Try to initialize immediately
+    initializeProgressBar();
+    
+    // If GSAP isn't ready, wait for it
+    if (typeof gsap === 'undefined') {
+        // Check for GSAP every 100ms
+        const gsapCheck = setInterval(function() {
+            if (typeof gsap !== 'undefined') {
+                clearInterval(gsapCheck);
+                initializeProgressBar();
+            }
+        }, 100);
+        
+        // Fallback: if GSAP doesn't load within 2 seconds, just show the overlay
+        setTimeout(function() {
+            if (typeof gsap === 'undefined') {
+                clearInterval(gsapCheck);
+                const overlay = document.querySelector('.page-transition-overlay');
+                if (overlay) {
+                    overlay.style.opacity = '1';
+                    overlay.style.visibility = 'visible';
+                    overlay.style.display = 'block';
+                }
+            }
+        }, 2000);
+    }
+})();
 
-// --- INITIALIZATION ---
-
-// Initialize immediately if DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    globalPageTransition.init();
-  });
-} else {
-  globalPageTransition.init();
-}
-
-// Also initialize on window load as backup
-window.addEventListener('load', () => {
-  if (!globalPageTransition.isInitialized) {
-    globalPageTransition.init();
-  }
+    // Wait for DOM, Smootify, and Swiper to be ready
+    document.addEventListener('DOMContentLoaded', function() {
+        let smootifyReady = false;
+        let swiperReady = false;
+        let progressStep = 0;
+        
+        function updateProgress(step) {
+            if (window.pageTransitionProgress && window.pageTransitionProgress.element) {
+                const progress = (step / 3) * 100; // 3 total steps
+                gsap.to(window.pageTransitionProgress.element, {
+                    width: progress + '%',
+                    duration: 0.5,
+                    ease: 'power2.out'
+                });
+            }
+        }
+        
+        function checkAllReady() {
+            if (smootifyReady && swiperReady) {
+                console.log('Both Smootify and Swiper ready - initializing page transition');
+                // Complete progress to 100%
+                updateProgress(3);
+                // Small delay to show completion, then initialize
+                setTimeout(() => {
+                    initializePageTransition();
+                }, 300);
+            }
+        }
+    
+    // Check if Smootify is already loaded
+    if (typeof Smootify !== 'undefined') {
+        console.log('Smootify already loaded');
+        updateProgress(1);
+        smootifyReady = true;
+        checkAllReady();
+    } else {
+        // Wait for Smootify to load
+        document.addEventListener('smootify:loaded', function() {
+            console.log('Smootify loaded');
+            updateProgress(1);
+            smootifyReady = true;
+            checkAllReady();
+        });
+    }
+    
+    // Check if Swiper is already loaded
+    if (typeof Swiper !== 'undefined') {
+        console.log('Swiper already loaded');
+        updateProgress(2);
+        swiperReady = true;
+        checkAllReady();
+    } else {
+        // Wait for Swiper to initialize (common event names)
+        const swiperEvents = ['swiper:init', 'swiper:ready', 'swiper:loaded'];
+        swiperEvents.forEach(eventName => {
+            document.addEventListener(eventName, function() {
+                console.log('Swiper initialized');
+                updateProgress(2);
+                swiperReady = true;
+                checkAllReady();
+            });
+        });
+        
+        // Alternative: Check for Swiper elements periodically
+        const swiperCheck = setInterval(function() {
+            const swiperElements = document.querySelectorAll('.swiper, [data-swiper], .swiper-container');
+            if (swiperElements.length > 0 && typeof Swiper !== 'undefined') {
+                console.log('Swiper detected - initializing page transition');
+                clearInterval(swiperCheck);
+                updateProgress(2);
+                swiperReady = true;
+                checkAllReady();
+            }
+        }, 100);
+    }
+    
+    // Fallback: If neither loads within 5 seconds, initialize anyway
+    setTimeout(function() {
+        if (!smootifyReady || !swiperReady) {
+            console.log('Timeout reached - initializing page transition');
+            updateProgress(3);
+            setTimeout(() => {
+                initializePageTransition();
+            }, 300);
+        }
+    }, 5000);
 });
 
-// --- PUBLIC API ---
-window.PageTransition = {
-  // Instance methods
-  show: () => globalPageTransition.show(),
-  hide: () => globalPageTransition.hide(),
-  forceHide: () => globalPageTransition.forceHide(),
-  
-  // Configuration
-  updateConfig: (config) => globalPageTransition.updateConfig(config),
-  getConfig: () => ({ ...PAGE_TRANSITION_CONFIG }),
-  
-  // Status
-  getStatus: () => globalPageTransition.getStatus(),
-  
-  // Reinitialize
-  reinit: () => {
-    globalPageTransition.forceHide();
-    globalPageTransition.isInitialized = false;
-    globalPageTransition.init();
-  }
-};
-
-// --- CONSOLE LOGGING ---
-console.log('[Page Transition] Script loaded successfully');
-console.log('[Page Transition] Use window.PageTransition to control the transition');
-
-// --- EXPORT FOR MODULE SYSTEMS ---
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { PageTransition, PAGE_TRANSITION_CONFIG };
-}
+// Optional: Add CSS for the overlay and progress bar (you can also add this in Webflow's custom CSS)
+const style = document.createElement('style');
+style.textContent = `
+    .page-transition-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #000000;
+        z-index: 9999;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
+    
+    .page-transitioning {
+        overflow: hidden;
+    }
+    
+    .page-transitioning .page-transition-overlay {
+        pointer-events: auto;
+    }
+    
+    .page-transition-progress {
+        text-align: center;
+        color: white;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10000;
+    }
+    
+    .progress-container {
+        max-width: 300px;
+        width: 100%;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 6px;
+        background-color: rgba(255, 255, 255, 0.15);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .progress-fill {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #e6007e 0%, #ff1493 100%);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+        box-shadow: 0 0 10px rgba(230, 0, 126, 0.5);
+    }
+    
+    .progress-text {
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        color: white;
+        text-transform: uppercase;
+        opacity: 0.9;
+    }
+`;
+document.head.appendChild(style);
