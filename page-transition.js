@@ -212,8 +212,31 @@ class PageTransition {
   
   // Set up navigation events for back/forward buttons
   setupNavigationEvents() {
+    // Track if the last click was on a hash-only link
+    let lastClickWasHash = false;
+    
+    // Listen for clicks on links
+    document.addEventListener('click', (event) => {
+      const clickedElement = event.target.closest('a');
+      
+      if (clickedElement && clickedElement.tagName === 'A') {
+        const href = clickedElement.getAttribute('href');
+        if (href === '#') {
+          lastClickWasHash = true;
+          // Reset the flag after a short delay
+          setTimeout(() => {
+            lastClickWasHash = false;
+          }, 100);
+        }
+      }
+    });
+    
     // Show transition when page is about to unload (navigation starting)
     window.addEventListener('beforeunload', () => {
+      // Don't show transition if the last click was on a hash-only link
+      if (lastClickWasHash) {
+        return;
+      }
       this.show();
     });
     
@@ -318,7 +341,7 @@ class PageTransition {
   // Update configuration
   updateConfig(newConfig) {
     Object.assign(PAGE_TRANSITION_CONFIG, newConfig);
-    //console.log('[Page Transition] Configuration updated:', newConfig);
+    console.log('[Page Transition] Configuration updated:', newConfig);
   }
   
   // Get current status
@@ -377,8 +400,8 @@ window.PageTransition = {
 };
 
 // --- CONSOLE LOGGING ---
-//console.log('[Page Transition] Script loaded successfully');
-//console.log('[Page Transition] Use window.PageTransition to control the transition');
+console.log('[Page Transition] Script loaded successfully');
+console.log('[Page Transition] Use window.PageTransition to control the transition');
 
 // --- EXPORT FOR MODULE SYSTEMS ---
 if (typeof module !== 'undefined' && module.exports) {
