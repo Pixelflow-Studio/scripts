@@ -100,7 +100,6 @@ const Utils = {
 class PageTransition {
   constructor() {
     this.overlay = null;
-    this.isTransitioning = false;
     this.startTime = 0;
     this.autoHideTimer = null;
     this.isInitialized = false;
@@ -203,7 +202,7 @@ class PageTransition {
     
     // Fallback timer
     this.autoHideTimer = setTimeout(() => {
-      if (this.overlay && !this.overlay.classList.contains('hidden')) {
+      if (this.overlay && !this.overlay.classList.contains('hidden')) {a
         console.warn('[Page Transition] Auto-hiding after timeout');
         this.hide();
       }
@@ -212,42 +211,39 @@ class PageTransition {
   
   // Set up navigation events for back/forward buttons
   setupNavigationEvents() {
-    // Track if the last click was on a hash-only link
-    let lastClickWasHash = false;
-    
-    // Listen for clicks on links
-    document.addEventListener('click', (event) => {
-      const clickedElement = event.target.closest('a');
-      
-      if (clickedElement && clickedElement.tagName === 'A') {
-        const href = clickedElement.getAttribute('href');
-        if (href === '#') {
-          lastClickWasHash = true;
-          // Reset the flag after a short delay
-          setTimeout(() => {
-            lastClickWasHash = false;
-          }, 100);
-        }
-      }
-    });
+    let navigationTimeout = null;
+    let lastNavigationTime = 0;
     
     // Show transition when page is about to unload (navigation starting)
     window.addEventListener('beforeunload', () => {
-      // Don't show transition if the last click was on a hash-only link
-      if (lastClickWasHash) {
-        return;
-      }
       this.show();
     });
     
     // Handle popstate events (back/forward button clicks)
     window.addEventListener('popstate', () => {
-      this.show();
+      const now = performance.now();
+      const timeSinceLastNav = now - lastNavigationTime;
+      lastNavigationTime = now;
       
-      // Hide after a short delay to allow page to load
-      setTimeout(() => {
-        this.hide();
-      }, 500);
+      // Clear any existing timeout
+      if (navigationTimeout) {
+        clearTimeout(navigationTimeout);
+      }
+      
+      // If navigation happens too quickly, show transition immediately
+      if (timeSinceLastNav < 100) {
+        this.show();
+        // Keep it visible longer for rapid navigation
+        navigationTimeout = setTimeout(() => {
+          this.hide();
+        }, 800);
+      } else {
+        this.show();
+        // Normal delay for regular navigation
+        navigationTimeout = setTimeout(() => {
+          this.hide();
+        }, 500);
+      }
     });
     
     // Handle page visibility changes (when user switches tabs)
@@ -281,9 +277,6 @@ class PageTransition {
   
   // Show the transition
   show() {
-    if (this.isTransitioning) return;
-    
-    this.isTransitioning = true;
     this.startTime = performance.now();
     
     // Recreate overlay if needed
@@ -294,15 +287,11 @@ class PageTransition {
     if (this.overlay) {
       this.overlay.classList.remove('hidden');
     }
-    
-    this.isTransitioning = false;
   }
   
   // Hide the transition
   hide() {
-    if (!this.overlay || this.isTransitioning) return;
-    
-    this.isTransitioning = true;
+    if (!this.overlay) return;
     
     // Clear auto-hide timer
     if (this.autoHideTimer) {
@@ -313,14 +302,18 @@ class PageTransition {
     // Hide the overlay
     this.overlay.classList.add('hidden');
     
-    // Remove overlay after animation
+    // Don't remove the overlay immediately - keep it for potential rapid navigation
+    // Only remove it after a longer delay to prevent issues with quick back/forward
     setTimeout(() => {
-      if (this.overlay && this.overlay.parentNode) {
-        this.overlay.parentNode.removeChild(this.overlay);
-        this.overlay = null;
+      if (this.overlay && this.overlay.parentNode && this.overlay.classList.contains('hidden')) {
+        // Only remove if it's still hidden and no new navigation has started
+        const timeSinceHide = performance.now() - this.startTime;
+        if (timeSinceHide > PAGE_TRANSITION_CONFIG.fadeOutDuration + 1000) {
+          this.overlay.parentNode.removeChild(this.overlay);
+          this.overlay = null;
+        }
       }
-      this.isTransitioning = false;
-    }, PAGE_TRANSITION_CONFIG.fadeOutDuration);
+    }, PAGE_TRANSITION_CONFIG.fadeOutDuration + 1000);
   }
   
   // Force hide (immediate)
@@ -334,8 +327,6 @@ class PageTransition {
       this.overlay.parentNode.removeChild(this.overlay);
       this.overlay = null;
     }
-    
-    this.isTransitioning = false;
   }
   
   // Update configuration
@@ -347,7 +338,6 @@ class PageTransition {
   // Get current status
   getStatus() {
     return {
-      isTransitioning: this.isTransitioning,
       isInitialized: this.isInitialized,
       hasOverlay: !!this.overlay,
       config: { ...PAGE_TRANSITION_CONFIG }
@@ -389,7 +379,6 @@ window.PageTransition = {
   
   // Status
   getStatus: () => globalPageTransition.getStatus(),
-  isTransitioning: () => globalPageTransition.isTransitioning,
   
   // Reinitialize
   reinit: () => {
