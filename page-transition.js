@@ -81,7 +81,7 @@ function initializePageTransition() {
         
         gsap.to(overlay, {
             opacity: 1,
-            duration: 0.5,
+            duration: 1,
             ease: 'power3.in'
         });
     }
